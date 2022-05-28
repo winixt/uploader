@@ -1,0 +1,11 @@
+.DS_Store
+node_modules
+*.log
+.cache
+.temp
+dist
+es
+lib
+/icon
+package-lock.json
+yarn.lock

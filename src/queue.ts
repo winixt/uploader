@@ -1,46 +1,61 @@
 import { FILE_STATUS } from './constants';
 import { Mediator } from './mediator';
+import { AcceptType } from './types';
+import FileBase from './fileBase';
+
+export interface QueueStats {
+    numOfQueue: number;
+    numOfSuccess: number;
+    numOfCancel: number;
+    numOfProgress: number;
+    numOfUploadFailed: number;
+    numOfInvalid: number;
+    numOfDeleted: number;
+    numOfInterrupt: number;
+}
 
 export class Queue extends Mediator {
+    stats: QueueStats = {
+        numOfQueue: 0,
+        numOfSuccess: 0,
+        numOfCancel: 0,
+        numOfProgress: 0,
+        numOfUploadFailed: 0,
+        numOfInvalid: 0,
+        numOfDeleted: 0,
+        numOfInterrupt: 0,
+    };
+    accept: RegExp;
+    filesQueue: FileBase[] = [];
+    filesMap: Record<string, FileBase> = {};
+
     constructor() {
         super();
-        this.stats = {
-            numOfQueue: 0,
-            numOfSuccess: 0,
-            numOfCancel: 0,
-            numOfProgress: 0,
-            numOfUploadFailed: 0,
-            numOfInvalid: 0,
-            numOfDeleted: 0,
-            numOfInterrupt: 0,
-        };
-        // 上传队列，仅包括等待上传的文件
-        this._queue = [];
-
-        // 存储所有文件
-        this._map = {};
     }
-    append(file) {
-        this._queue.push(file);
-        this._fileAdded(file);
+    getStats() {
+        return this.stats;
+    }
+    append(file: FileBase) {
+        this.filesQueue.push(file);
+        this.fileAdded(file);
         return this;
     }
-    prepend(file) {
-        this._queue.unshift(file);
-        this._fileAdded(file);
+    prepend(file: FileBase) {
+        this.filesQueue.unshift(file);
+        this.fileAdded(file);
         return this;
     }
-    getFile(fileId) {
+    getFile(fileId: string) {
         if (typeof fileId !== 'string') {
             return fileId;
         }
-        return this._map[fileId];
+        return this.filesMap[fileId];
     }
-    fetch(status) {
+    fetch(status: FILE_STATUS) {
         status = status || FILE_STATUS.QUEUED;
 
-        for (let i = 0; i < this._queue.length; i++) {
-            const file = this._queue[i];
+        for (let i = 0; i < this.filesQueue.length; i++) {
+            const file = this.filesQueue[i];
 
             if (status === file.getStatus()) {
                 return file;
@@ -49,17 +64,17 @@ export class Queue extends Mediator {
 
         return null;
     }
-    sort(fn) {
+    sort(fn: (a: FileBase, b: FileBase) => number) {
         if (typeof fn === 'function') {
-            this._queue.sort(fn);
+            this.filesQueue.sort(fn);
         }
     }
     // 获取指定类型的文件列表, 列表中每一个成员为[File](#WebUploader:File)对象。
-    getFiles(status) {
+    getFiles(status: FILE_STATUS) {
         const result = [];
 
-        for (let i = 0; i < this._queue.length; i++) {
-            const file = this._queue[i];
+        for (let i = 0; i < this.filesQueue.length; i++) {
+            const file = this.filesQueue[i];
 
             if (file.getStatus() !== status) {
                 continue;
@@ -76,36 +91,36 @@ export class Queue extends Mediator {
      * @method removeFile
      * @param {File} 文件对象。
      */
-    removeFile(file) {
-        const existing = this._map[file.id];
+    removeFile(file: FileBase) {
+        const existing = this.filesMap[file.id];
 
         if (existing) {
-            delete this._map[file.id];
-            this._delFile(file);
+            delete this.filesMap[file.id];
+            this.delFile(file);
             file.destroy();
             this.stats.numOfDeleted++;
         }
     }
-    _fileAdded(file) {
-        const existing = this._map[file.id];
+    private fileAdded(file: FileBase) {
+        const existing = this.filesMap[file.id];
 
         if (!existing) {
-            this._map[file.id] = file;
+            this.filesMap[file.id] = file;
 
-            file.on('statuschange', (cur, pre) => {
-                this._onFileStatusChange(cur, pre);
+            file.on('statuschange', (cur: FILE_STATUS, pre: FILE_STATUS) => {
+                this.onFileStatusChange(cur, pre);
             });
         }
     }
-    _delFile(file) {
-        for (let i = this._queue.length - 1; i >= 0; i--) {
-            if (this._queue[i] === file) {
-                this._queue.splice(i, 1);
+    private delFile(file: FileBase) {
+        for (let i = this.filesQueue.length - 1; i >= 0; i--) {
+            if (this.filesQueue[i] === file) {
+                this.filesQueue.splice(i, 1);
                 break;
             }
         }
     }
-    _onFileStatusChange(curStatus, preStatus) {
+    private onFileStatusChange(curStatus: FILE_STATUS, preStatus: FILE_STATUS) {
         const stats = this.stats;
 
         // eslint-disable-next-line default-case

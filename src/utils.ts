@@ -1,7 +1,7 @@
 export const guid = (() => {
     let counter = 0;
 
-    return function (prefix) {
+    return function (prefix?: string) {
         let timestramp = (+new Date()).toString(32);
 
         for (let i = 0; i < 5; i++) {
@@ -12,7 +12,7 @@ export const guid = (() => {
     };
 })();
 
-export const formatSize = (size, pointLength, units) => {
+export const formatSize = (size: number, pointLength?: number, units?: string[]) => {
     units = units || ['B', 'K', 'M', 'G', 'TB'];
     let unit = units.shift();
 

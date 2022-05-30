@@ -1,6 +1,6 @@
 import { FILE_STATUS } from './constants';
 import FileBase from './fileBase';
-import { FileBlock, FileBlocks } from './fileBlock';
+import { FileBlock, FileBlockManager } from './fileBlock';
 import { UploaderOptions } from './types';
 
 // 负责将文件切片。
@@ -11,6 +11,7 @@ function cuteFile(file: FileBase, chunkSize: number) {
     const chunks = chunkSize ? Math.ceil(total / chunkSize) : 1;
     let start = 0;
 
+    const blockManager = new FileBlockManager(file);
     for (let index = 0; index < chunks; index++) {
         const len = Math.min(chunkSize, total - start);
         pending.push({
@@ -20,39 +21,58 @@ function cuteFile(file: FileBase, chunkSize: number) {
             total: total,
             chunks: chunks,
             chunk: index,
+            transport: null,
+            manager: blockManager,
         });
         start += len;
     }
-    const fileBlocks = new FileBlocks(pending);
-    file.fileBlocks = fileBlocks;
+    blockManager.setBlocks(pending);
 
-    return fileBlocks;
+    file.blocks = pending.concat();
+    file.remaining = pending.length;
+
+    return blockManager;
 }
 
 export class Upload {
-    runing = false;
+    running = false;
     progress = false;
-    remaning = 0;
+    remaining = 0;
+    pool: FileBlock[] = [];
+    stack: FileBlockManager[] = [];
     private trigged = false;
+    private pending: Promise<FileBase>[] = [];
     private promise: Promise<any>;
     options: UploaderOptions;
     constructor(options: UploaderOptions) {
         this.options = options;
-        // owner
+        // owner TODO
         // .on( 'startUpload', function() {
         //     me.progress = true;
         // })
         // .on( 'uploadFinished', function() {
         //     me.progress = false;
         // });
+        // 销毁上传相关的属性。 TODO
+        // owner.on( 'uploadComplete', function( file ) {
+
+        //     // 把其他块取消了。
+        //     file.blocks && $.each( file.blocks, function( _, v ) {
+        //         v.transport && (v.transport.abort(), v.transport.destroy());
+        //         delete v.transport;
+        //     });
+
+        //     delete file.blocks;
+        //     delete file.remaning;
+        // });
     }
     reset() {
         this.stopUpload(true);
-        this.runing = false;
+        this.running = false;
         this.pool = [];
         this.stack = [];
         this.pending = [];
-        this.remaning = 0;
+        this.remaining = 0;
         this.trigged = false;
         this.promise = null;
     }
@@ -70,14 +90,12 @@ export class Upload {
         if (file) {
             if (file.getStatus() === FILE_STATUS.INTERRUPT) {
                 file.setStatus(FILE_STATUS.QUEUED);
-
-                $.each(me.pool, function (_, v) {
-                    // 之前暂停过。
-                    if (v.file !== file) {
+                this.pool.forEach((block: FileBlock) => {
+                    if (block.file !== file) {
                         return;
                     }
 
-                    v.transport && v.transport.send();
+                    block.transport && block.transport.send();
                     file.setStatus(FILE_STATUS.PROGRESS);
                 });
             } else if (file.getStatus() !== FILE_STATUS.PROGRESS) {
@@ -85,12 +103,12 @@ export class Upload {
             }
         }
 
-        if (me.runing) {
+        if (this.running) {
             me.owner.trigger('startUpload', file); // 开始上传或暂停恢复的，trigger event
             return Base.nextTick(me.__tick);
         }
 
-        me.runing = true;
+        me.running = true;
         const files = [];
 
         // 如果有暂停的，则续传
@@ -238,7 +256,10 @@ export class Upload {
         }
 
         // 还有位置，且还有文件要处理的话。
-        if (me.pool.length < this.options.threads && (val = me._nextBlock())) {
+        if (
+            this.pool.length < this.options.threads &&
+            (val = me._nextBlock())
+        ) {
             me._trigged = false;
 
             fn = function (val) {
@@ -296,7 +317,7 @@ export class Upload {
 
         return null;
     }
-    nextBlock() {
+    private nextBlock() {
         // 如果当前文件还有没有需要传输的，则直接返回剩下的。
         if ((act = this.getStack())) {
             // 是否提前准备下一个文件

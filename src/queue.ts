@@ -1,39 +1,65 @@
 import { FILE_STATUS } from './constants';
-import { Mediator } from './mediator';
-import { AcceptType } from './types';
 import FileBase from './fileBase';
 
 export interface QueueStats {
-    numOfQueue: number;
-    numOfSuccess: number;
-    numOfCancel: number;
-    numOfProgress: number;
-    numOfUploadFailed: number;
-    numOfInvalid: number;
-    numOfDeleted: number;
-    numOfInterrupt: number;
+    successNum: number;
+    progressNum: number;
+
+    cancelNum: number;
+    invalidNum: number;
+    uploadFailNum: number;
+    queueNum: number;
+    interruptNum: number;
 }
 
-export class Queue extends Mediator {
-    stats: QueueStats = {
-        numOfQueue: 0,
-        numOfSuccess: 0,
-        numOfCancel: 0,
-        numOfProgress: 0,
-        numOfUploadFailed: 0,
-        numOfInvalid: 0,
-        numOfDeleted: 0,
-        numOfInterrupt: 0,
-    };
+export class Queue {
     accept: RegExp;
     filesQueue: FileBase[] = [];
     filesMap: Record<string, FileBase> = {};
 
-    constructor() {
-        super();
-    }
     getStats() {
-        return this.stats;
+        const stats: QueueStats = {
+            successNum: 0,
+            progressNum: 0,
+
+            cancelNum: 0,
+            invalidNum: 0,
+            uploadFailNum: 0,
+            queueNum: 0,
+            interruptNum: 0,
+        };
+        return this.filesQueue.reduce((acc: QueueStats, cur: FileBase) => {
+            switch (cur.getStatus()) {
+                case FILE_STATUS.QUEUED:
+                    acc.queueNum++;
+                    break;
+
+                case FILE_STATUS.PROGRESS:
+                    acc.progressNum++;
+                    break;
+
+                case FILE_STATUS.ERROR:
+                    acc.uploadFailNum++;
+                    break;
+
+                case FILE_STATUS.COMPLETE:
+                    acc.successNum++;
+                    break;
+
+                case FILE_STATUS.CANCELLED:
+                    acc.cancelNum++;
+                    break;
+
+                case FILE_STATUS.INVALID:
+                    acc.invalidNum++;
+                    break;
+
+                case FILE_STATUS.INTERRUPT:
+                    acc.interruptNum++;
+                    break;
+            }
+            return acc;
+        }, stats);
     }
     append(file: FileBase) {
         this.filesQueue.push(file);
@@ -45,13 +71,13 @@ export class Queue extends Mediator {
         this.fileAdded(file);
         return this;
     }
-    getFile(fileId: string) {
+    getFile(fileId: string | FileBase) {
         if (typeof fileId !== 'string') {
             return fileId;
         }
         return this.filesMap[fileId];
     }
-    fetch(status: FILE_STATUS) {
+    fetchFile(status: FILE_STATUS) {
         status = status || FILE_STATUS.QUEUED;
 
         for (let i = 0; i < this.filesQueue.length; i++) {
@@ -94,22 +120,36 @@ export class Queue extends Mediator {
     removeFile(file: FileBase) {
         const existing = this.filesMap[file.id];
 
+        // TODO
+        //  this.request( 'cancel-file', file );
         if (existing) {
             delete this.filesMap[file.id];
             this.delFile(file);
-            file.destroy();
-            this.stats.numOfDeleted++;
         }
+    }
+    /**
+     * @method reset
+     * @grammar reset() => undefined
+     * @description 重置uploader。目前只重置了队列。
+     * @for  Uploader
+     * @example
+     * uploader.reset();
+     */
+    reset() {
+        this.filesQueue = [];
+        this.filesMap = {};
+    }
+
+    destroy() {
+        this.reset();
+        // TODO wath is placeholder ?
+        // this.placeholder && this.placeholder.destroy();
     }
     private fileAdded(file: FileBase) {
         const existing = this.filesMap[file.id];
 
         if (!existing) {
             this.filesMap[file.id] = file;
-
-            file.on('statuschange', (cur: FILE_STATUS, pre: FILE_STATUS) => {
-                this.onFileStatusChange(cur, pre);
-            });
         }
     }
     private delFile(file: FileBase) {
@@ -118,63 +158,6 @@ export class Queue extends Mediator {
                 this.filesQueue.splice(i, 1);
                 break;
             }
-        }
-    }
-    private onFileStatusChange(curStatus: FILE_STATUS, preStatus: FILE_STATUS) {
-        const stats = this.stats;
-
-        // eslint-disable-next-line default-case
-        switch (preStatus) {
-            case FILE_STATUS.PROGRESS:
-                stats.numOfProgress--;
-                break;
-
-            case FILE_STATUS.QUEUED:
-                stats.numOfQueue--;
-                break;
-
-            case FILE_STATUS.ERROR:
-                stats.numOfUploadFailed--;
-                break;
-
-            case FILE_STATUS.INVALID:
-                stats.numOfInvalid--;
-                break;
-
-            case FILE_STATUS.INTERRUPT:
-                stats.numOfInterrupt--;
-                break;
-        }
-
-        // eslint-disable-next-line default-case
-        switch (curStatus) {
-            case FILE_STATUS.QUEUED:
-                stats.numOfQueue++;
-                break;
-
-            case FILE_STATUS.PROGRESS:
-                stats.numOfProgress++;
-                break;
-
-            case FILE_STATUS.ERROR:
-                stats.numOfUploadFailed++;
-                break;
-
-            case FILE_STATUS.COMPLETE:
-                stats.numOfSuccess++;
-                break;
-
-            case FILE_STATUS.CANCELLED:
-                stats.numOfCancel++;
-                break;
-
-            case FILE_STATUS.INVALID:
-                stats.numOfInvalid++;
-                break;
-
-            case FILE_STATUS.INTERRUPT:
-                stats.numOfInterrupt++;
-                break;
         }
     }
 }

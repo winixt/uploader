@@ -6,6 +6,7 @@ export interface AcceptType {
 
 export interface UploaderOptions {
     auto: boolean;
+    server?: string;
     pick?: string;
     accept?: AcceptType | AcceptType[];
     prepareNextFile: boolean;
@@ -13,7 +14,7 @@ export interface UploaderOptions {
     chunkSize: number;
     chunkRetry: number;
     threads: number;
-    formData?: FormData;
+    params?: Record<string, any>;
     fileVal: string;
     method: 'POST' | 'GET';
     sendAsBinary: boolean;
@@ -21,4 +22,9 @@ export interface UploaderOptions {
     fileSizeLimit?: number;
     fileSingleSizeLimit?: number;
     duplicate?: number;
+    headers?: Record<string, string>;
+    withCredentials: boolean;
+    timeout: number;
+    filename?: string;
+    attachInfoToQuery?: boolean;
 }

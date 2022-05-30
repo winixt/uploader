@@ -1,21 +1,11 @@
 import FileBase from './fileBase';
+import { Transport } from './transport';
 
-export interface FileBlock {
+export class FileBlockManager {
     file: FileBase;
-    start: number;
-    end: number;
-    total: number;
-    chunks: number;
-    chunk: number;
-    transport;
-}
-
-export class FileBlocks {
-    blocks: FileBlock[];
-    remaning: number;
-    constructor(blocks: FileBlock[]) {
-        this.blocks = blocks;
-        this.remaning = this.blocks.length;
+    blocks: FileBlock[] = [];
+    constructor(file: FileBase) {
+        this.file = file;
     }
     has() {
         return !!this.blocks.length;
@@ -28,7 +18,21 @@ export class FileBlocks {
     unshift(block: FileBlock) {
         this.blocks.unshift(block);
     }
+    setBlocks(blocks: FileBlock[]) {
+        this.blocks = blocks;
+        return this;
+    }
     getBlocks() {
         return this.blocks;
     }
+}
+export interface FileBlock {
+    file: FileBase;
+    start: number;
+    end: number;
+    total: number;
+    chunks: number;
+    chunk: number;
+    transport: Transport;
+    manager: FileBlockManager;
 }

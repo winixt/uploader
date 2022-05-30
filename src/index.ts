@@ -1,6 +1,6 @@
 import {} from './queue';
 
-import {AcceptType} from './types'
+import { AcceptType } from './types';
 
 interface UploaderOptions {
     auto: boolean;
@@ -19,6 +19,8 @@ interface UploaderOptions {
     fileSizeLimit?: number;
     fileSingleSizeLimit?: number;
     duplicate?: number;
+    withCredentials?: boolean;
+    filename?: string;
 }
 
 export interface Stats {
@@ -28,12 +30,12 @@ export interface Stats {
     invalidNum: number;
     uploadFailNum: number;
     queueNum: number;
-    interruptNum: number;   
+    interruptNum: number;
 }
 
 export interface Uploader {
     options: UploaderOptions;
-    getStats: () => Stats
+    getStats: () => Stats;
 }
 
 export function createUploader(options: Partial<UploaderOptions>) {
@@ -46,16 +48,14 @@ export function createUploader(options: Partial<UploaderOptions>) {
         threads: 3,
         fileVal: 'file',
         method: 'POST',
-        sendAsBinary: false
+        sendAsBinary: false,
     };
-    
+
     const uploader: Uploader = {
         options: {
             ...defaultOptions,
-            ...options
+            ...options,
         },
-        getStats() {
-
-        }
-    }
+        getStats() {},
+    };
 }

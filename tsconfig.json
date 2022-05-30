@@ -9,6 +9,7 @@
         "declarationDir": "./types",
         "allowSyntheticDefaultImports": true,
         "forceConsistentCasingInFileNames": true,
+        "experimentalDecorators": true,
         "composite": true,
         "target": "ES6",
         "types": [

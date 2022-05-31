@@ -2,6 +2,13 @@ import { FILE_STATUS } from './constants';
 import FileBase from './fileBase';
 import { FileBlock, FileBlockManager } from './fileBlock';
 import { UploaderOptions } from './types';
+import { Mediator } from './mediator';
+import { nextTick } from './utils';
+
+interface PromiseFile {
+    promise: Promise<any>;
+    file: FileBase;
+}
 
 // 负责将文件切片。
 function cuteFile(file: FileBase, chunkSize: number) {
@@ -38,14 +45,19 @@ export class Upload {
     running = false;
     progress = false;
     remaining = 0;
+    // 记录当前正在传的数据，跟threads相关
     pool: FileBlock[] = [];
+    // 缓存分好片的文件。
     stack: FileBlockManager[] = [];
+    // 缓存即将上传的文件。
+    pending: Promise<FileBase>[] = [];
     private trigged = false;
-    private pending: Promise<FileBase>[] = [];
-    private promise: Promise<any>;
+    private promiseFile: PromiseFile;
     options: UploaderOptions;
-    constructor(options: UploaderOptions) {
+    emit: Mediator;
+    constructor(options: UploaderOptions, emit: Mediator) {
         this.options = options;
+        this.emit = emit;
         // owner TODO
         // .on( 'startUpload', function() {
         //     me.progress = true;
@@ -76,6 +88,14 @@ export class Upload {
         this.trigged = false;
         this.promise = null;
     }
+    triggerStartUpload(file?: FileBase) {
+        this.progress = true;
+        this.emit.trigger('startUpload', file); // 开始上传或暂停恢复的，trigger event
+    }
+    triggerStopUpload(file?: FileBase) {
+        this.progress = false;
+        this.emit.trigger('stopUpload', file); // 开始上传或暂停恢复的，trigger event
+    }
     /**
      * 开始上传。此方法可以从初始状态调用开始上传流程，也可以从暂停状态调用，继续上传流程。
      *
@@ -104,43 +124,45 @@ export class Upload {
         }
 
         if (this.running) {
-            me.owner.trigger('startUpload', file); // 开始上传或暂停恢复的，trigger event
-            return Base.nextTick(me.__tick);
+            this.triggerStartUpload(file);
+            return nextTick(this.tick);
         }
 
-        me.running = true;
-        const files = [];
+        this.running = true;
 
         // 如果有暂停的，则续传
-        file ||
-            $.each(me.pool, function (_, v) {
-                const file = v.file;
+        if (!file) {
+            this.pool.forEach((block: FileBlock) => {
+                const file = block.file;
 
-                if (file.getStatus() === Status.INTERRUPT) {
-                    me._trigged = false;
-                    files.push(file);
+                if (file.getStatus() === FILE_STATUS.INTERRUPT) {
+                    this.trigged = false;
+                    file.setStatus(FILE_STATUS.PROGRESS);
 
-                    if (v.waiting) {
+                    if (block.waiting) {
                         return;
                     }
 
                     // 文件 prepare 完后，如果暂停了，这个时候只会把文件插入 pool, 而不会创建 tranport，
-                    v.transport ? v.transport.send() : me._doSend(v);
+                    block.transport
+                        ? block.transport.send()
+                        : this.doSend(block);
                 }
             });
+        }
 
-        $.each(files, function () {
-            this.setStatus(Status.PROGRESS);
-        });
+        // TODO 逻辑优化
+        // if (!file) {
+        //     this.queue
+        //         .getFiles(FILE_STATUS.INTERRUPT)
+        //         .forEach((file: FileBase) => {
+        //             file.setStatus(FILE_STATUS.PROGRESS);
+        //         });
+        // }
 
-        file ||
-            $.each(me.request('get-files', Status.INTERRUPT), function () {
-                this.setStatus(Status.PROGRESS);
-            });
-
-        me._trigged = false;
-        Base.nextTick(me.__tick);
-        me.owner.trigger('startUpload');
+        this.trigged = false;
+        nextTick(this.tick);
+        this.triggerStartUpload(file);
     }
     /**
      * 暂停上传。第一个参数为是否中断上传当前正在上传的文件。
@@ -159,7 +181,7 @@ export class Upload {
             file = null;
         }
 
-        if (this.runing === false) {
+        if (this.running === false) {
             return;
         }
 
@@ -174,37 +196,50 @@ export class Upload {
 
             file.setStatus(FILE_STATUS.INTERRUPT);
 
-            $.each(me.pool, function (_, v) {
+            this.pool.forEach((block: FileBlock) => {
                 // 只 abort 指定的文件，每一个分片。
-                if (v.file === file) {
-                    v.transport && v.transport.abort();
+                if (block.file === file) {
+                    block.transport && block.transport.abort();
 
                     if (interrupt) {
-                        me._putback(v);
-                        me._popBlock(v);
+                        this.putback(block);
+                        this.popBlock(block);
                     }
                 }
             });
 
-            me.owner.trigger('stopUpload', file); // 暂停，trigger event
+            this.triggerStopUpload(file);
 
-            return Base.nextTick(me.__tick);
+            return nextTick(this.tick);
         }
 
-        me.runing = false;
+        this.running = false;
 
         // 正在准备中的文件。
-        if (this._promise && this._promise.file) {
-            this._promise.file.setStatus(Status.INTERRUPT);
+        if (this.promiseFile && this.promiseFile.file) {
+            this.promiseFile.file.setStatus(FILE_STATUS.INTERRUPT);
         }
 
-        interrupt &&
-            $.each(me.pool, function (_, v) {
-                v.transport && v.transport.abort();
-                v.file.setStatus(Status.INTERRUPT);
+        if (interrupt) {
+            this.pool.forEach((block: FileBlock) => {
+                block.transport && block.transport.abort();
+                block.file.setStatus(FILE_STATUS.INTERRUPT);
             });
+        }
 
-        me.owner.trigger('stopUpload');
+        this.triggerStopUpload();
+    }
+    cancelUpload(file: FileBase) {
+        file.blocks &&
+            file.blocks.forEach((block) => {
+                const _tr = block.transport;
+
+                if (_tr) {
+                    _tr.abort();
+                    _tr.destroy();
+                    delete block.transport;
+                }
+            });
     }
     /**
      * @method cancelFile
@@ -221,17 +256,17 @@ export class Upload {
      */
     cancelFile(file: FileBase) {
         // 如果正在上传。
-        file.fileBlocks &&
-            file.fileBlocks.getBlocks().forEach((block) => {
-                const _tr = block.transport;
-
-                if (_tr) {
-                    _tr.abort();
-                    _tr.destroy();
-                    delete block.transport;
-                }
-            });
+        this.cancelUpload(file);
         file.setStatus(FILE_STATUS.CANCELLED);
+        this.emit.trigger('fileDequeued', file);
+    }
+    skipFile(file: FileBase, status: FILE_STATUS) {
+        file.setStatus(status || FILE_STATUS.COMPLETE);
+        file.skipped = true;
+
+        // 如果正在上传。
+        this.cancelUpload(file);
+        this.emit.trigger('uploadSkip', file);
     }
     /**
      * 判断`Uploader`是否正在上传中。
@@ -250,15 +285,15 @@ export class Upload {
      */
     private async tick() {
         // 上一个promise还没有结束，则等待完成后再执行。
-        if (this.promise) {
-            await this.promise;
+        if (this.promiseFile) {
+            await this.promiseFile.promise;
             this.tick();
         }
 
         // 还有位置，且还有文件要处理的话。
         if (
             this.pool.length < this.options.threads &&
-            (val = me._nextBlock())
+            (val = this.nextBlock())
         ) {
             me._trigged = false;
 

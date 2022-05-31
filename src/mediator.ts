@@ -1,27 +1,27 @@
-
 type callbackType = {
-    (...args: any[]): void;
-    _cb?: Function
-}
+    (...args: any[]): any;
+    _cb?: (...args: any[]) => any;
+};
 
 interface EventHandler {
     name: string;
     cb: callbackType;
-    ctx: any;
-    ctx2: any;
 }
-
 
 export class Mediator {
     private events: EventHandler[] = [];
-    private findEventIndex(name: string, callback?: callbackType, context?: any) {
+    private findEventIndex(name: string, callback?: callbackType) {
         return this.events.findIndex(
-            (item) => name === item.name && (!callback || item.cb === callback || item.cb._cb === callback) && (!context || item.ctx === context),
+            (item) =>
+                name === item.name &&
+                (!callback || item.cb === callback || item.cb._cb === callback),
         );
     }
-    private findEvents(name: string, callback?: () => void, context?: any) {
+    private findEvents(name: string, callback?: () => void) {
         return this.events.filter(
-            (item) => name === item.name && (!callback || item.cb === callback || item.cb._cb === callback) && (!context || item.ctx === context),
+            (item) =>
+                name === item.name &&
+                (!callback || item.cb === callback || item.cb._cb === callback),
         );
     }
     private triggerHanders(events: EventHandler[], args: any[]) {
@@ -32,7 +32,7 @@ export class Mediator {
         while (++i < len) {
             const handler = events[i];
 
-            if (handler.cb.apply(handler.ctx2, args) === false) {
+            if (handler.cb(...args)) {
                 stoped = true;
                 break;
             }
@@ -40,56 +40,40 @@ export class Mediator {
 
         return !stoped;
     }
-    private createEventHandler(name: string, callback: callbackType, context?: any) {
+    private createEventHandler(name: string, callback: callbackType) {
         return {
             name,
             cb: callback,
-            ctx: context,
-            ctx2: context || this,
-        }
+        };
     }
-    on(name: string | string[], callback: callbackType, context?: any) {
-        if (typeof name === 'string') {
-            this.events.push(this.createEventHandler(name, callback, context))
-        } else {
-            name.forEach(n => {
-                this.events.push(this.createEventHandler(n, callback, context))
-            })
-        }
-
+    on(name: string, callback: callbackType) {
+        this.events.push(this.createEventHandler(name, callback));
         return this;
     }
-    once(name: string | string[], callback: callbackType, context?: any) {
-        if (typeof name !== 'string') {
-            name.forEach(n => this.once(n, callback, context))
-        }
+    once(name: string, callback: callbackType) {
         const once = (...args: any[]) => {
             this.off(name, once);
-            return callback.apply(context || this, args);
+            return callback(...args);
         };
 
         once._cb = callback;
-        this.on(name, once, context);
+        this.on(name, once);
 
         return this;
     }
-    off(name?: string | string[], callback?: () => {}, context?: any) {
+    off(name?: string, callback?: callbackType) {
         if (!this.events.length) {
             return this;
         }
 
-        if (!name && !callback && !context) {
+        if (!name && !callback) {
             this.events = [];
             return this;
         }
-
-        const names = typeof name === 'string' ? [name] : name;
-        names.forEach(n => {
-            const index = this.findEventIndex(n, callback, context);
-            if (index !== -1) {
-                this.events.splice(index, 1);
-            }
-        })
+        const index = this.findEventIndex(name, callback);
+        if (index !== -1) {
+            this.events.splice(index, 1);
+        }
 
         return this;
     }
@@ -103,4 +87,3 @@ export class Mediator {
         return this.triggerHanders(events, args);
     }
 }
-

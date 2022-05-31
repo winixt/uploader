@@ -1,78 +1,44 @@
 import { noop } from 'lodash-es';
+import { RequestOptions } from './types';
 import { Mediator } from './mediator';
-import { UploaderOptions } from './types';
-import { os } from './utils';
 
-export class Transport {
+/**
+ * 对外暴露的事件：progress succeess error
+ */
+
+export class Transport extends Mediator {
     private status = 0;
     private response: string;
     private xhr: XMLHttpRequest;
-    private headers: Record<string, string>;
-    private emit: Mediator;
-    private options: UploaderOptions;
-    private file: File;
-    private params: Record<string, string>;
-    private timer: number;
-    constructor(options: UploaderOptions, emit: Mediator) {
+    private options: RequestOptions;
+    private params: Record<string, any>;
+    constructor(options: RequestOptions) {
+        super();
         this.options = { ...options };
-        this.emit = emit;
+        this.params = { ...this.options.params };
     }
-
     send() {
         const xhr = this.initAjax();
-        let server = this.options.server;
+        const server = this.options.url;
+        xhr.withCredentials = this.options.withCredentials;
 
-        if (this.options.withCredentials && 'withCredentials' in xhr) {
-            xhr.open(this.options.method, server, true);
-            xhr.withCredentials = true;
-        } else {
-            xhr.open(this.options.method, server);
+        xhr.open('POST', server, true);
+
+        this.setRequestHeader(xhr, this.options.headers);
+
+        const formData = new FormData();
+        for (const [key, value] of Object.entries(this.options.params)) {
+            formData.append(key, value);
         }
 
-        this._setRequestHeader(xhr, this.options.headers);
-
-        if (this.options.sendAsBinary) {
-            server +=
-                this.options.attachInfoToQuery !== false
-                    ? (/\?/.test(server) ? '&' : '?') +
-                      new URLSearchParams(this.params).toString()
-                    : '';
-
-            const binary = this.file;
-            // 强制设置成 content-type 为文件流。
-            xhr.overrideMimeType &&
-                xhr.overrideMimeType('application/octet-stream');
-
-            // android直接发送blob会导致服务端接收到的是空文件。
-            // bug详情。
-            // https://code.google.com/p/android/issues/detail?id=39882
-            // 所以先用fileReader读取出来再通过arraybuffer的方式发送。
-            if (os.android) {
-                let fr = new FileReader();
-
-                fr.onload = function () {
-                    xhr.send(this.result);
-                    fr = fr.onload = null;
-                };
-
-                fr.readAsArrayBuffer(binary);
-            } else {
-                xhr.send(binary);
-            }
+        xhr.send(formData);
+    }
+    appendParam(key: string | Record<string, any>, value?: any) {
+        if (typeof key === 'string') {
+            this.params[key] = value;
         } else {
-            const formData = new FormData();
-            for (const [key, value] of Object.entries(this.params)) {
-                formData.append(key, value);
-            }
-
-            formData.append(
-                this.options.fileVal,
-                this.file,
-                this.options.filename,
-            );
-            xhr.send(formData);
+            Object.assign(this.params, key);
         }
-        this.timeout();
     }
     getResponse() {
         return this.response;
@@ -81,30 +47,11 @@ export class Transport {
         return this.parseJson(this.response);
     }
 
-    getResponseHeaders() {
-        return this.headers;
-    }
-
     getStatus() {
         return this.status;
     }
 
-    appendFile(key: string, file: File, filename: string) {
-        this.file = file;
-        this.options.fileVal = key || this.options.fileVal;
-        this.options.filename = filename || this.options.filename;
-    }
-
-    appendParams(key: string | Record<string, string>, value?: string) {
-        if (typeof key === 'object') {
-            Object.assign(this.params, key);
-        } else {
-            this.params[key] = value;
-        }
-    }
-
     abort() {
-        clearTimeout(this.timer);
         const xhr = this.xhr;
 
         if (xhr) {
@@ -116,38 +63,13 @@ export class Transport {
         }
     }
 
-    setRequestHeader(key: string | Record<string, string>, value?: string) {
-        if (typeof key === 'object') {
-            Object.assign(this.headers, key);
-        } else {
-            this.headers[key] = value;
-        }
-    }
-
     destroy() {
         this.abort();
-    }
-
-    private timeout() {
-        const duration = this.options.timeout;
-
-        if (!duration) {
-            return;
-        }
-
-        clearTimeout(this.timer);
-        this.timer = setTimeout(() => {
-            this.abort();
-            this.emit.trigger('error', 'timeout');
-        }, duration);
-    }
-    private sended() {
-        this.emit.trigger('progress', 1);
-        clearTimeout(this.timer);
     }
     private initAjax() {
         const xhr = new XMLHttpRequest();
 
+        xhr.timeout = this.options.timeout;
         xhr.upload.onprogress = (e) => {
             let percentage = 0;
 
@@ -155,8 +77,7 @@ export class Transport {
                 percentage = e.loaded / e.total;
             }
 
-            this.timeout();
-            return this.emit.trigger('progress', percentage);
+            return this.trigger('progress', percentage);
         };
 
         xhr.onreadystatechange = () => {
@@ -175,40 +96,28 @@ export class Transport {
 
             if (xhr.status >= 200 && xhr.status < 300) {
                 this.response = xhr.responseText;
-                this.headers = this.parseHeader(xhr.getAllResponseHeaders());
-                this.sended();
-                return this.emit.trigger('load');
+                this.trigger('progress', 1);
+                return this.trigger('success');
             } else if (xhr.status >= 500 && xhr.status < 600) {
                 this.response = xhr.responseText;
-                this.headers = this.parseHeader(xhr.getAllResponseHeaders());
-                this.sended();
-                return this.emit.trigger('error', 'server' + status);
+                this.trigger('progress', 1);
+                return this.trigger('error', 'server' + status);
             }
 
-            return this.emit.trigger(
+            return this.trigger(
                 'error',
                 this.status ? 'http' + status : 'abort',
             );
         };
 
+        xhr.ontimeout = () => {
+            return this.trigger('error', 'timeout');
+        };
+
         this.xhr = xhr;
         return xhr;
     }
-
-    private parseHeader(raw: string) {
-        const ret: Record<string, string> = {};
-
-        raw &&
-            raw.replace(
-                /^([^\:]+):(.*)$/gm,
-                (_: string, key: string, value: string) => {
-                    return (ret[key.trim()] = value.trim());
-                },
-            );
-
-        return ret;
-    }
-    private _setRequestHeader(
+    private setRequestHeader(
         xhr: XMLHttpRequest,
         headers: Record<string, string>,
     ) {

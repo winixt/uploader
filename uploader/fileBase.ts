@@ -1,6 +1,5 @@
 import { FILE_STATUS } from './constants';
 import { FileBlock } from './fileBlock';
-import { Transport } from './transport';
 
 const idPrefix = 'WU_FILE_';
 let idSuffix = 0;
@@ -8,7 +7,7 @@ function gid() {
     return idPrefix + idSuffix++;
 }
 
-export class FileBase {
+export default class FileBase {
     name: string;
     size: number;
     type: string;
@@ -18,9 +17,9 @@ export class FileBase {
     statusText: string;
     source: File;
     blocks: FileBlock[] = [];
-    remainingBlock = 0;
+    remaining = 0;
+    skipped: boolean;
     status: FILE_STATUS;
-    transport: Transport; // 处理不分片直接上传的情况
     constructor(source: File) {
         this.name = source.name || 'Untitled';
         this.size = source.size || 0;
@@ -31,7 +30,7 @@ export class FileBase {
         this.statusText = '';
         this.source = source;
 
-        this.status = FILE_STATUS.QUEUED;
+        this.status = FILE_STATUS.INITED;
     }
     getExt() {
         const result = /\.([^.]+)$/.exec(this.name);

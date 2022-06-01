@@ -17,7 +17,7 @@ export function genBlockMeta(file: FileBase, chunkSize: number) {
             end: chunkSize ? start + len : total,
             total: total,
             chunks: chunks,
-            chunk: index,
+            chunkIndex: index,
             transport: null,
             manager: blockManager,
         });
@@ -55,6 +55,18 @@ export class FileBlockManager {
     getBlocks() {
         return this.blocks;
     }
+    getProcessPercentage() {
+        return this.blocks.reduce((acc, cur) => {
+            return (acc +=
+                (cur.transport ? cur.transport.process : 0) / cur.chunks);
+        }, 0);
+    }
+    isSuccess() {
+        return this.blocks.every((item) => {
+            const status = item.transport?.status;
+            return status >= 200 && status < 300;
+        });
+    }
 }
 export interface FileBlock {
     file: FileBase;
@@ -62,8 +74,7 @@ export interface FileBlock {
     end: number;
     total: number;
     chunks: number;
-    chunk: number;
-    waiting?: boolean;
+    chunkIndex: number;
     transport: Transport;
     manager: FileBlockManager;
 }

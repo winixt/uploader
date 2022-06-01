@@ -1,7 +1,7 @@
 import { UploaderOptions, RequestOptions } from './types';
-
+import { Uploader } from './uploader';
 export function createUploader(options: Partial<UploaderOptions>) {
-    const { request, otherOptions } = options;
+    const { request, ...otherOptions } = options;
 
     const requestOptions: RequestOptions = {
         fileField: 'file',
@@ -14,14 +14,13 @@ export function createUploader(options: Partial<UploaderOptions>) {
      * 文件队列
      * chunk 队列
      */
-    return {
-        startUpload(files: File | File[]) {},
-        stopUpload(files?: File | File[]) {},
-        // 监听上传进度
-        onProgress() {},
-        // 上传成功
-        onSuccess(file: File) {},
-        // 上传失败
-        onError(file: File) {},
-    };
+
+    return new Uploader({
+        chunked: true,
+        chunkSize: 5242880, // 5M
+        retry: 2,
+        threads: 3,
+        ...otherOptions,
+        request: requestOptions,
+    });
 }

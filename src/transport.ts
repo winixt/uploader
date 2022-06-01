@@ -7,7 +7,8 @@ import { Mediator } from './mediator';
  */
 
 export class Transport extends Mediator {
-    private status = 0;
+    status = 0;
+    process = 0;
     private response: string;
     private xhr: XMLHttpRequest;
     private options: RequestOptions;
@@ -66,6 +67,10 @@ export class Transport extends Mediator {
     destroy() {
         this.abort();
     }
+    private changeProcess(percentage: number) {
+        this.process = percentage;
+        return this.trigger('progress', percentage);
+    }
     private initAjax() {
         const xhr = new XMLHttpRequest();
 
@@ -76,8 +81,7 @@ export class Transport extends Mediator {
             if (e.lengthComputable) {
                 percentage = e.loaded / e.total;
             }
-
-            return this.trigger('progress', percentage);
+            this.changeProcess(percentage);
         };
 
         xhr.onreadystatechange = () => {
@@ -95,12 +99,13 @@ export class Transport extends Mediator {
             const status = separator + xhr.status + separator + xhr.statusText;
 
             if (xhr.status >= 200 && xhr.status < 300) {
-                this.response = xhr.responseText;
-                this.trigger('progress', 1);
-                return this.trigger('success');
+                const response = this.parseJson(xhr.responseText);
+                this.response = response || xhr.responseText;
+                this.changeProcess(1);
+                return this.trigger('success', this.response);
             } else if (xhr.status >= 500 && xhr.status < 600) {
                 this.response = xhr.responseText;
-                this.trigger('progress', 1);
+                this.changeProcess(1);
                 return this.trigger('error', 'server' + status);
             }
 

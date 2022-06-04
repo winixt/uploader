@@ -47,6 +47,9 @@ export class Uploader {
             });
         }
     }
+    getFiles() {
+        return this.queue.fileQueue;
+    }
     // 仅添加文件到队列中，不执行上传
     addFile(file: FileType) {
         file = this.wrapFile(file);

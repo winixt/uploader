@@ -81,14 +81,15 @@ export class FileBlockManager {
         }, 0);
     }
     isSuccess() {
-        return this.blocks.every((item) => {
-            return item.transport?.isSuccess();
+        return this.blocks.some((item) => {
+            const response = item.transport?.getResponse() as any;
+            return response && response.merge;
         });
     }
     findUploadSuccessRes() {
         let successRes: Record<string, any> = {};
         this.blocks.forEach((item: FileBlock) => {
-            const response = item.transport.getResponse() as any;
+            const response = item.transport?.getResponse() as any;
             if (typeof response !== 'string' && response.merge) {
                 successRes = response.merge;
             }

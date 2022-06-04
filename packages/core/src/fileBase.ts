@@ -1,11 +1,41 @@
 import { FILE_STATUS } from './constants';
 import { FileBlock } from './fileBlock';
-import { Transport } from './transport';
+import SparkMD5 from 'spark-md5';
 
 const idPrefix = 'WU_FILE_';
 let idSuffix = 0;
 function gid() {
     return idPrefix + idSuffix++;
+}
+
+function genFileHash(file: FileBase): Promise<string> {
+    return new Promise((resolve) => {
+        const spark = new SparkMD5.ArrayBuffer();
+        const fileReader = new FileReader();
+        let currentChunk = 0;
+        fileReader.onload = function (e) {
+            spark.append(e.target.result as ArrayBuffer); // Append array buffer
+            currentChunk++;
+
+            if (currentChunk < file.blocks.length) {
+                loadNext();
+            } else {
+                resolve(spark.end());
+            }
+        };
+
+        fileReader.onerror = function () {
+            console.warn('oops, something went wrong.');
+        };
+
+        function loadNext() {
+            const { start, end } = file.blocks[currentChunk];
+
+            fileReader.readAsArrayBuffer(file.source.slice(start, end));
+        }
+
+        loadNext();
+    });
 }
 
 export class FileBase {
@@ -14,6 +44,7 @@ export class FileBase {
     type: string;
     lastModified: number;
     id: string;
+    hash: string;
     ext: string;
     statusText: string;
     source: File;
@@ -38,6 +69,9 @@ export class FileBase {
     }
     setStatusText(text: string) {
         this.statusText = text;
+    }
+    async genFileHash() {
+        this.hash = await genFileHash(this);
     }
     setStatus(status: FILE_STATUS) {
         const prevStatus = this.status;

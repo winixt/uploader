@@ -32,7 +32,7 @@ export class FileQueue {
             this.uploadFile(file);
         });
     }
-    uploadFile(file: FileBase) {
+    async uploadFile(file: FileBase) {
         if (file.getStatus() === FILE_STATUS.COMPLETE) return;
         file.setStatus(FILE_STATUS.PROGRESS);
         let blockManager;
@@ -44,6 +44,9 @@ export class FileQueue {
                 this.options.chunked,
                 this.options.chunkSize,
             );
+        }
+        if (!file.hash) {
+            await file.genFileHash();
         }
         this.pool.push(
             ...blockManager.getBlocks().map((block: FileBlock) => {
@@ -121,7 +124,7 @@ export class FileQueue {
             chunks: poolItem.block.chunks,
             chunkIndex: poolItem.block.chunkIndex,
             filename: file.name,
-            id: file.id,
+            hash: file.hash,
         });
         transport.send();
         transport.on('progress', () => {
@@ -179,8 +182,10 @@ export class FileQueue {
                 poolItem.block.file,
             );
             poolItem.block.file.setStatus(FILE_STATUS.COMPLETE);
+            this.stopTargetFileUpload(poolItem.block.file);
+        } else {
+            nextTick(this.tick);
         }
-        nextTick(this.tick);
     }
 
     private filterFile(fileStatus: FILE_STATUS) {

@@ -20,7 +20,6 @@ export class FileBase {
     blocks: FileBlock[] = [];
     remainingBlock = 0;
     status: FILE_STATUS;
-    transport: Transport; // 处理不分片直接上传的情况
     constructor(source: File) {
         this.name = source.name || 'Untitled';
         this.size = source.size || 0;

@@ -14,39 +14,62 @@ export class Uploader {
         this.emit = new Mediator();
         this.queue = new FileQueue(this.options, this.emit);
     }
-    startUpload(files: FileType | FileType[]) {
-        if (!Array.isArray(files)) {
-            files = [files];
+    wrapFile(file: FileType) {
+        if (file instanceof FileBase) {
+            return file;
         }
-        const fileBases = files.map((file: FileType) => {
-            if (file instanceof FileBase) {
-                return file;
-            }
-            return new FileBase(file);
-        });
-        fileBases.forEach((file: FileBase) => {
-            this.queue.startUpload(file);
-        });
+        return new FileBase(file);
+    }
+    // 执行上传，并将文件添加到队列
+    startUpload(files?: FileType | FileType[]) {
+        if (!Array.isArray(files)) {
+            files = files ? [files] : [];
+        }
+        const fileBases = files.map(this.wrapFile);
+        this.queue.startUpload(fileBases);
 
         return fileBases;
     }
-    stopUpload(files?: FileBase | FileBase[]) {
+    stopUpload(files?: FileType | FileType[]) {
         if (!Array.isArray(files)) {
             files = files ? [files] : null;
         }
         if (!files) {
-            this.queue.stopUpload();
+            this.queue.stopAllUpload();
         } else {
-            files.forEach((file: FileBase) => {
-                this.queue.stopUpload(file);
+            files.forEach((file: FileType) => {
+                if (file instanceof FileBase) {
+                    this.queue.stopTargetFileUpload(file);
+                } else {
+                    const fileBases = this.queue.findFile(file);
+                    fileBases.forEach(this.queue.stopTargetFileUpload);
+                }
             });
+        }
+    }
+    // 仅添加文件到队列中，不执行上传
+    addFile(file: FileType) {
+        file = this.wrapFile(file);
+        this.queue.addFile(file);
+    }
+    // 移除文件的时候，记得调用，避免内存泄漏
+    removeFile(file?: FileType) {
+        if (!file) {
+            this.queue.removeAllFile();
+        } else {
+            if (file instanceof FileBase) {
+                this.queue.removeFile(file);
+            } else {
+                const fileBases = this.queue.findFile(file);
+                fileBases.forEach(this.queue.removeFile);
+            }
         }
     }
     onProgress(fn: (percentage: number, file: File) => void) {
         this.emit.on('progress', fn);
     }
     onSuccess(fn: (response: any, file: File) => void) {
-        this.emit.on('progress', fn);
+        this.emit.on('success', fn);
     }
     onError(fn: (msg: string, file: File) => void) {
         this.emit.on('error', fn);

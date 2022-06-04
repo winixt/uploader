@@ -1,28 +1,47 @@
 import { FileBase } from './fileBase';
 import { Transport } from './transport';
 
-export function genBlockMeta(file: FileBase, chunkSize: number) {
+export function genBlockMeta(
+    file: FileBase,
+    chunked: boolean,
+    chunkSize: number,
+) {
     const pending: FileBlock[] = [];
     const blob = file.source;
     const total = blob.size;
-    const chunks = chunkSize ? Math.ceil(total / chunkSize) : 1;
-    let start = 0;
-
     const blockManager = new FileBlockManager(file);
-    for (let index = 0; index < chunks; index++) {
-        const len = Math.min(chunkSize, total - start);
+
+    if (chunked) {
+        const chunks = chunkSize ? Math.ceil(total / chunkSize) : 1;
+        let start = 0;
+
+        for (let index = 0; index < chunks; index++) {
+            const len = Math.min(chunkSize, total - start);
+            pending.push({
+                file: file,
+                start: start,
+                end: chunkSize ? start + len : total,
+                total: total,
+                chunks: chunks,
+                chunkIndex: index,
+                transport: null,
+                manager: blockManager,
+            });
+            start += len;
+        }
+    } else {
         pending.push({
             file: file,
-            start: start,
-            end: chunkSize ? start + len : total,
+            start: 0,
+            end: total,
             total: total,
-            chunks: chunks,
-            chunkIndex: index,
+            chunks: 1,
+            chunkIndex: 0,
             transport: null,
             manager: blockManager,
         });
-        start += len;
     }
+
     blockManager.setBlocks(pending);
 
     file.blocks = pending.concat();
@@ -63,14 +82,13 @@ export class FileBlockManager {
     }
     isSuccess() {
         return this.blocks.every((item) => {
-            const status = item.transport?.status;
-            return status >= 200 && status < 300;
+            return item.transport?.isSuccess();
         });
     }
     findUploadSuccessRes() {
         let successRes: Record<string, any> = {};
         this.blocks.forEach((item: FileBlock) => {
-            const response = item.transport.getResponse();
+            const response = item.transport.getResponse() as any;
             if (typeof response !== 'string' && response.merge) {
                 successRes = response.merge;
             }

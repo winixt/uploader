@@ -9,7 +9,7 @@ import { Mediator } from './mediator';
 export class Transport extends Mediator {
     status = 0;
     process = 0;
-    private response: string | Record<string, any>;
+    private response: string;
     private xhr: XMLHttpRequest;
     private options: RequestOptions;
     private params: Record<string, any>;
@@ -43,6 +43,10 @@ export class Transport extends Mediator {
     }
     getResponse() {
         return this.response;
+    }
+
+    isSuccess() {
+        return this.status >= 200 && this.status < 300;
     }
 
     getStatus() {

@@ -10,11 +10,8 @@ let poolIndex = 0;
 interface PoolItem {
     id: number;
     retry: number;
-    fileBase?: FileBase;
-    block?: FileBlock;
+    block: FileBlock;
 }
-
-// TODO 处理 block 错误重传和 暂停重传问题
 
 export class FileQueue {
     fileQueue: FileBase[] = [];
@@ -26,54 +23,70 @@ export class FileQueue {
         this.options = { ...options };
         this.emit = emit;
     }
-    startUpload(fileBase: FileBase) {
-        fileBase.setStatus(FILE_STATUS.PROGRESS);
-        if (!this.options.chunked) {
-            this.pool.push({
-                id: poolIndex++,
-                fileBase,
-                retry: this.options.retry,
-            });
+    startUpload(files: FileBase[]) {
+        this.fileQueue.push(...files);
+        this.filterFile(FILE_STATUS.QUEUED).forEach((file: FileBase) => {
+            this.uploadFile(file);
+        });
+        this.filterFile(FILE_STATUS.INTERRUPT).forEach((file: FileBase) => {
+            this.uploadFile(file);
+        });
+    }
+    uploadFile(file: FileBase) {
+        if (file.getStatus() === FILE_STATUS.COMPLETE) return;
+        file.setStatus(FILE_STATUS.PROGRESS);
+        let blockManager;
+        if (file.blocks.length) {
+            blockManager = file.blocks[0].manager;
         } else {
-            const blockManager = genBlockMeta(fileBase, this.options.chunkSize);
-            this.pool.push(
-                ...blockManager.getBlocks().map((block: FileBlock) => {
-                    return {
-                        id: poolIndex++,
-                        block,
-                        retry: this.options.retry,
-                    };
-                }),
+            blockManager = genBlockMeta(
+                file,
+                this.options.chunked,
+                this.options.chunkSize,
             );
         }
+        this.pool.push(
+            ...blockManager.getBlocks().map((block: FileBlock) => {
+                return {
+                    id: poolIndex++,
+                    block,
+                    retry: this.options.retry,
+                };
+            }),
+        );
         nextTick(this.tick);
     }
-    stopUpload(fileBase?: FileBase) {
-        if (!fileBase) {
-            this.activePool.forEach((item) => {
-                if (item.fileBase) {
-                    item.fileBase.transport?.abort();
-                }
-                if (item.block) {
-                    item.block.transport?.abort();
-                }
-            });
-            this.pool = [];
-            this.activePool = [];
-        } else {
-            this.activePool.forEach((item) => {
-                if (item.fileBase === fileBase) {
-                    item.fileBase.transport?.abort();
-                } else if (item.block && item.block.file === fileBase) {
-                    item.block.transport?.abort();
-                }
-            });
-            this.pool = this.removeFilePoolItem(this.pool, fileBase);
-            this.activePool = this.removeFilePoolItem(
-                this.activePool,
-                fileBase,
-            );
+    stopAllUpload() {
+        this.activePool.forEach((item) => {
+            if (item.block) {
+                item.block.transport?.abort();
+            }
+        });
+        this.pool = [];
+        this.activePool = [];
+        this.fileQueue.forEach((file: FileBase) => {
+            if (
+                ![FILE_STATUS.COMPLETE, FILE_STATUS.QUEUED].includes(
+                    file.getStatus(),
+                )
+            ) {
+                file.setStatus(FILE_STATUS.INTERRUPT);
+            }
+        });
+    }
+    stopTargetFileUpload(file: FileBase) {
+        this.activePool.forEach((item) => {
+            if (item.block.file === file) {
+                item.block.transport?.abort();
+            }
+        });
+
+        if (file.getStatus() !== FILE_STATUS.COMPLETE) {
+            file.setStatus(FILE_STATUS.INTERRUPT);
         }
+        this.pool = this.excludeFilePoolItem(this.pool, file);
+        this.activePool = this.excludeFilePoolItem(this.activePool, file);
+        nextTick(this.tick);
     }
     tick() {
         if (this.pool.length && this.activePool.length < this.options.threads) {
@@ -82,37 +95,23 @@ export class FileQueue {
                 this.options.threads - this.activePool.length,
             );
 
-            newActivePool.forEach(this.upload);
+            newActivePool.forEach(this.sendBlock);
             this.activePool = this.activePool.concat(newActivePool);
         }
     }
-    upload(poolItem: PoolItem) {
-        if (poolItem.fileBase) {
-            this.sendFile(poolItem);
-        } else if (poolItem.block) {
-            this.sendBlock(poolItem);
-        }
-    }
-    sendFile(poolItem: PoolItem) {
-        const fileBase = poolItem.fileBase;
-        const transport = new Transport(this.options.request);
-        fileBase.transport = transport;
-        transport.appendParam({
-            [this.options.request.fileField]: fileBase,
-        });
-        transport.send();
-        transport.on('progress', (percentage) => {
-            this.emit.trigger('progress', percentage, fileBase);
-        });
-        transport.on('succeess', (response) => {
-            this.emit.trigger('success', response, fileBase);
-            nextTick(this.tick);
-        });
-        transport.on('error', (errorMsg) => {
-            this.errorHandler(poolItem, errorMsg);
-        });
-    }
     sendBlock(poolItem: PoolItem) {
+        if (poolItem.block.transport) {
+            if (poolItem.block.transport.isSuccess()) {
+                this.emit.trigger(
+                    'progress',
+                    poolItem.block.manager.getProcessPercentage(),
+                    poolItem.block.file,
+                );
+                this.uploadBlockSuccess(poolItem);
+                return;
+            }
+            poolItem.block.transport.destroy();
+        }
         const transport = new Transport(this.options.request);
         const { file, start, end } = poolItem.block;
         const chunk = file.source.slice(start, end);
@@ -127,78 +126,70 @@ export class FileQueue {
         transport.send();
         transport.on('progress', () => {
             const allPercentage = poolItem.block.manager.getProcessPercentage();
-            this.emit.trigger('progress', allPercentage, file.source);
+            this.emit.trigger('progress', allPercentage, file);
         });
         transport.on('succeess', () => {
-            if (poolItem.block.manager.isSuccess()) {
-                this.emit.trigger(
-                    'success',
-                    poolItem.block.manager.findUploadSuccessRes(),
-                    poolItem.block.file,
-                );
-            }
-            nextTick(this.tick);
+            this.uploadBlockSuccess(poolItem);
         });
         transport.on('error', (errorMsg) => {
             // 移除该文件所有 block
             if (!poolItem.retry) {
-                this.activePool.forEach((item) => {
-                    if (item.block && item.block.file === poolItem.block.file) {
-                        item.block.transport.abort();
-                    }
-                });
-                this.pool = this.removeFilePoolItem(
-                    this.pool,
-                    poolItem.block.file,
-                );
-                this.activePool = this.removeFilePoolItem(
-                    this.activePool,
-                    poolItem.block.file,
-                );
+                this.stopTargetFileUpload(poolItem.block.file);
+                this.emit.trigger('error', errorMsg, poolItem.block.file);
+                file.setStatus(FILE_STATUS.ERROR);
+            } else {
+                poolItem.retry -= 1;
+                this.sendBlock(poolItem);
             }
-            this.errorHandler(poolItem, errorMsg);
         });
     }
 
-    errorHandler(poolItem: PoolItem, errorMsg: string) {
-        const fileBase = this.getFileInPoolItem(poolItem);
-        this.removePoolItem(this.activePool, poolItem.id);
-        if (!poolItem.retry) {
-            this.emit.trigger('error', errorMsg, fileBase.source);
-            nextTick(this.tick);
-        } else {
-            poolItem.retry -= 1;
-            this.upload(poolItem);
-        }
-    }
-    getFileInPoolItem(poolItem: PoolItem) {
-        if (poolItem.fileBase) {
-            return poolItem.fileBase;
-        }
-        return poolItem.block.file;
-    }
-    removeFilePoolItem(pool: PoolItem[], filebase: FileBase) {
-        return pool.filter((item) => {
-            if (item.fileBase) return item.fileBase !== filebase;
-            if (item.block) return item.block.file !== filebase;
-            return true;
+    findFile(file: File) {
+        return this.fileQueue.filter((item: FileBase) => {
+            return item.source === file;
         });
     }
-    removePoolItem(pool: PoolItem[], poolId: number) {
-        const index = pool.findIndex((item: PoolItem) => item.id === poolId);
-        if (index !== -1) {
-            pool.splice(index, 1);
+
+    addFile(file: FileBase) {
+        if (!this.fileQueue.find((item) => item.source === file.source)) {
+            this.fileQueue.push(file);
+        } else {
+            throw new Error(`${file.source.name} is exist in file queue.`);
         }
     }
-    addFile(file: File) {
-        if (!this.fileQueue.find((item) => item.source === file)) {
-            this.fileQueue.push(new FileBase(file));
-        }
-    }
-    removeFile(file: File) {
-        const index = this.fileQueue.findIndex((item) => item.source === file);
+    removeFile(file: FileBase) {
+        this.stopTargetFileUpload(file);
+        const index = this.fileQueue.findIndex(
+            (item) => item.source === file.source,
+        );
         if (index !== -1) {
             this.fileQueue.splice(index, 1);
         }
+    }
+    removeAllFile() {
+        this.stopAllUpload();
+        this.fileQueue = [];
+    }
+
+    private uploadBlockSuccess(poolItem: PoolItem) {
+        if (poolItem.block.manager.isSuccess()) {
+            this.emit.trigger(
+                'success',
+                poolItem.block.manager.findUploadSuccessRes(),
+                poolItem.block.file,
+            );
+            poolItem.block.file.setStatus(FILE_STATUS.COMPLETE);
+        }
+        nextTick(this.tick);
+    }
+
+    private filterFile(fileStatus: FILE_STATUS) {
+        return this.fileQueue.filter((item) => item.status === fileStatus);
+    }
+
+    private excludeFilePoolItem(pool: PoolItem[], filebase: FileBase) {
+        return pool.filter((item) => {
+            return item.block.file !== filebase;
+        });
     }
 }

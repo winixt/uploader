@@ -67,6 +67,17 @@ export class FileBlockManager {
             return status >= 200 && status < 300;
         });
     }
+    findUploadSuccessRes() {
+        let successRes: Record<string, any> = {};
+        this.blocks.forEach((item: FileBlock) => {
+            const response = item.transport.getResponse();
+            if (typeof response !== 'string' && response.merge) {
+                successRes = response.merge;
+            }
+        });
+
+        return successRes;
+    }
 }
 export interface FileBlock {
     file: FileBase;

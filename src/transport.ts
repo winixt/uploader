@@ -9,7 +9,7 @@ import { Mediator } from './mediator';
 export class Transport extends Mediator {
     status = 0;
     process = 0;
-    private response: string;
+    private response: string | Record<string, any>;
     private xhr: XMLHttpRequest;
     private options: RequestOptions;
     private params: Record<string, any>;
@@ -20,7 +20,7 @@ export class Transport extends Mediator {
     }
     send() {
         const xhr = this.initAjax();
-        const server = this.options.url;
+        const server = this.options.api;
         xhr.withCredentials = this.options.withCredentials;
 
         xhr.open('POST', server, true);
@@ -43,9 +43,6 @@ export class Transport extends Mediator {
     }
     getResponse() {
         return this.response;
-    }
-    getResponseAsJson() {
-        return this.parseJson(this.response);
     }
 
     getStatus() {
@@ -95,7 +92,6 @@ export class Transport extends Mediator {
             this.status = xhr.status;
 
             const separator = '|'; // 分隔符
-            // 拼接的状态，在 widgets/upload.js 会有代码用到这个分隔符
             const status = separator + xhr.status + separator + xhr.statusText;
 
             if (xhr.status >= 200 && xhr.status < 300) {

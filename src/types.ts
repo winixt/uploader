@@ -1,5 +1,5 @@
 export interface RequestOptions {
-    url: string;
+    api: string;
     fileField: string;
     params?: Record<string, any>;
     headers?: Record<string, string>;

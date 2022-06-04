@@ -3,6 +3,8 @@ import { UploaderOptions } from './types';
 import { FileQueue } from './fileQueue';
 import { FileBase } from './fileBase';
 
+type FileType = File | FileBase;
+
 export class Uploader {
     options: UploaderOptions;
     emit: Mediator;
@@ -12,11 +14,14 @@ export class Uploader {
         this.emit = new Mediator();
         this.queue = new FileQueue(this.options, this.emit);
     }
-    startUpload(files: File | File[]) {
+    startUpload(files: FileType | FileType[]) {
         if (!Array.isArray(files)) {
             files = [files];
         }
-        const fileBases = files.map((file: File) => {
+        const fileBases = files.map((file: FileType) => {
+            if (file instanceof FileBase) {
+                return file;
+            }
             return new FileBase(file);
         });
         fileBases.forEach((file: FileBase) => {
@@ -30,7 +35,7 @@ export class Uploader {
             files = files ? [files] : null;
         }
         if (!files) {
-            this.stopUpload();
+            this.queue.stopUpload();
         } else {
             files.forEach((file: FileBase) => {
                 this.queue.stopUpload(file);

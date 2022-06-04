@@ -14,6 +14,8 @@ interface PoolItem {
     block?: FileBlock;
 }
 
+// TODO 处理 block 错误重传和 暂停重传问题
+
 export class FileQueue {
     fileQueue: FileBase[] = [];
     options: UploaderOptions;
@@ -127,12 +129,15 @@ export class FileQueue {
             const allPercentage = poolItem.block.manager.getProcessPercentage();
             this.emit.trigger('progress', allPercentage, file.source);
         });
-        transport.on('succeess', (response) => {
-            nextTick(this.tick);
+        transport.on('succeess', () => {
             if (poolItem.block.manager.isSuccess()) {
-                // TODO 如何获取 fileId 和 fileHash
-                this.emit.trigger('success', response);
+                this.emit.trigger(
+                    'success',
+                    poolItem.block.manager.findUploadSuccessRes(),
+                    poolItem.block.file,
+                );
             }
+            nextTick(this.tick);
         });
         transport.on('error', (errorMsg) => {
             // 移除该文件所有 block
@@ -163,7 +168,7 @@ export class FileQueue {
             nextTick(this.tick);
         } else {
             poolItem.retry -= 1;
-            this.pool.push(poolItem);
+            this.upload(poolItem);
         }
     }
     getFileInPoolItem(poolItem: PoolItem) {

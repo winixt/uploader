@@ -30,7 +30,7 @@ export class Uploader {
 
         this.emit = new Mediator();
         this.queue = new Queue();
-        this.upload = new Upload(this.options);
+        this.upload = new Upload(this.options, this.emit);
         this.accept = this.genAcceptReg();
     }
     private genAcceptReg(accept?: AcceptType | AcceptType[]) {

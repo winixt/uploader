@@ -2,12 +2,6 @@ import { FILE_STATUS } from './constants';
 import { FileBlock } from './fileBlock';
 import SparkMD5 from 'spark-md5';
 
-const idPrefix = 'WU_FILE_';
-let idSuffix = 0;
-function gid() {
-    return idPrefix + idSuffix++;
-}
-
 function genFileHash(file: FileBase): Promise<string> {
     return new Promise((resolve) => {
         const spark = new SparkMD5.ArrayBuffer();
@@ -43,7 +37,6 @@ export class FileBase {
     size: number;
     type: string;
     lastModified: number;
-    id: string;
     hash: string;
     ext: string;
     statusText: string;
@@ -56,7 +49,6 @@ export class FileBase {
         this.size = source.size || 0;
         this.type = source.type || 'application/octet-stream';
         this.lastModified = source.lastModified || Date.now();
-        this.id = gid();
         this.ext = this.getExt();
         this.statusText = '';
         this.source = source;

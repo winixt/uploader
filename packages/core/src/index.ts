@@ -1,10 +1,10 @@
 import { UploaderOptions, RequestOptions } from './types';
 import { Uploader } from './uploader';
+
 export function createUploader(options: Partial<UploaderOptions>) {
     const { request, ...otherOptions } = options;
 
     const requestOptions: RequestOptions = {
-        fileField: 'file',
         withCredentials: true,
         timeout: 2 * 60 * 1000, // 2min
         ...request,

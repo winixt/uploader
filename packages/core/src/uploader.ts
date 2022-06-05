@@ -1,3 +1,4 @@
+import { merge } from 'lodash-es';
 import { Mediator } from './mediator';
 import { UploaderOptions } from './types';
 import { FileQueue } from './fileQueue';
@@ -19,6 +20,9 @@ export class Uploader {
             return file;
         }
         return new FileBase(file);
+    }
+    setOption(opts: Partial<UploaderOptions>) {
+        merge(this.options, opts);
     }
     // 执行上传，并将文件添加到队列
     startUpload(files?: FileType | FileType[]) {

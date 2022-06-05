@@ -1,0 +1,22 @@
+{
+  "name": "@qlin/uploader-fesd",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "winixt",
+  "license": "ISC",
+  "dependencies": {
+    "@qlin/uploader": "^0.1.0"
+  },
+  "devDependencies": {
+    "@fesjs/fes-design": "^0.5.9",
+    "vue": "^3.2.36"
+  },
+  "peerDependencies": {
+    "@fesjs/fes-design": "^0.5.9"
+  }
+}

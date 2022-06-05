@@ -20,7 +20,7 @@ export class FileQueue {
     private pool: PoolItem[] = [];
     private activePool: PoolItem[] = [];
     constructor(options: UploaderOptions, emit: Mediator) {
-        this.options = { ...options };
+        this.options = options;
         this.emit = emit;
     }
     startUpload(files: FileBase[]) {

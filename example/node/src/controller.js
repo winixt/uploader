@@ -62,7 +62,7 @@ class Controller {
                 res.end(
                     JSON.stringify({
                         code: 0,
-                        msg: 'chunk exits',
+                        msg: `${filename} chunk ${chunkIndex} exists`,
                     }),
                 );
                 return;

@@ -1,5 +1,5 @@
 <template>
-    <Uploader action="http://127.0.0.1:3000">
+    <Uploader action="http://127.0.0.1:3000/upload" :chunkSize="10 * 1024">
         <FButton>上传文件</FButton>
     </Uploader>
 </template>

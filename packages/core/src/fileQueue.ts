@@ -121,7 +121,7 @@ export class FileQueue {
         poolItem.block.transport = transport;
         transport.appendParam({
             chunk: chunk,
-            chunks: poolItem.block.chunks,
+            totalChunk: poolItem.block.chunks,
             chunkIndex: poolItem.block.chunkIndex,
             filename: file.name,
             hash: file.hash,

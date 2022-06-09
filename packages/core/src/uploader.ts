@@ -35,13 +35,16 @@ export class Uploader {
         return fileBases;
     }
     stopUpload(files?: FileType | FileType[]) {
-        if (!Array.isArray(files)) {
-            files = files ? [files] : null;
-        }
         if (!files) {
             this.queue.stopAllUpload();
         } else {
-            files.forEach((file: FileType) => {
+            let _files: FileType[] = [];
+            if (!Array.isArray(files)) {
+                _files = [files];
+            } else {
+                _files = files;
+            }
+            _files.forEach((file: FileType) => {
                 if (file instanceof FileBase) {
                     this.queue.stopTargetFileUpload(file);
                 } else {

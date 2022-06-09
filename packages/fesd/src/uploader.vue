@@ -33,7 +33,7 @@
 <script lang="ts">
 import { defineComponent, watch, onBeforeUnmount, PropType } from 'vue';
 import { FUpload } from '@fesjs/fes-design';
-import { createUploader } from '@qlin/uploader';
+import { createUploader } from '../../core/src/index';
 
 interface FileListItem {
     uid?: number | string;
@@ -52,7 +52,10 @@ export default defineComponent({
             type: Array as PropType<string[]>,
             default: (): string[] => [],
         },
-        action: String,
+        action: {
+            type: String,
+            required: true,
+        },
         headers: {
             type: Object,
             default: () => ({}),

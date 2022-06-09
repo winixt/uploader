@@ -3,7 +3,7 @@ export interface RequestOptions {
     params?: Record<string, any>;
     headers?: Record<string, string>;
     withCredentials?: boolean;
-    timeout?: number;
+    timeout: number;
 }
 
 export interface UploaderOptions {

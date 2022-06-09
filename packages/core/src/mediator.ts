@@ -10,7 +10,8 @@ interface EventHandler {
 
 export class Mediator {
     private events: EventHandler[] = [];
-    private findEventIndex(name: string, callback?: callbackType) {
+    private findEventIndex(name?: string, callback?: callbackType) {
+        if (!name) return -1;
         return this.events.findIndex(
             (item) =>
                 name === item.name &&

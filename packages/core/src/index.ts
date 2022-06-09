@@ -5,6 +5,7 @@ export function createUploader(options: Partial<UploaderOptions>) {
     const { request, ...otherOptions } = options;
 
     const requestOptions: RequestOptions = {
+        api: '',
         withCredentials: true,
         timeout: 2 * 60 * 1000, // 2min
         ...request,

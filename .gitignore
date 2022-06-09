@@ -9,3 +9,5 @@ lib
 /icon
 package-lock.json
 yarn.lock
+
+example/node/tmp

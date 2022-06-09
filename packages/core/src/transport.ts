@@ -9,8 +9,8 @@ import { Mediator } from './mediator';
 export class Transport extends Mediator {
     status = 0;
     process = 0;
-    private response: string;
-    private xhr: XMLHttpRequest;
+    private response: any;
+    private xhr: XMLHttpRequest | null;
     private options: RequestOptions;
     private params: Record<string, any>;
     constructor(options: RequestOptions) {
@@ -21,14 +21,14 @@ export class Transport extends Mediator {
     send() {
         const xhr = this.initAjax();
         const server = this.options.api;
-        xhr.withCredentials = this.options.withCredentials;
+        xhr.withCredentials = !!this.options.withCredentials;
 
         xhr.open('POST', server, true);
 
         this.setRequestHeader(xhr, this.options.headers);
 
         const formData = new FormData();
-        for (const [key, value] of Object.entries(this.options.params)) {
+        for (const [key, value] of Object.entries(this.params)) {
             formData.append(key, value);
         }
 
@@ -124,7 +124,7 @@ export class Transport extends Mediator {
     }
     private setRequestHeader(
         xhr: XMLHttpRequest,
-        headers: Record<string, string>,
+        headers: Record<string, string> = {},
     ) {
         for (const [key, value] of Object.entries(headers)) {
             xhr.setRequestHeader(key, value);

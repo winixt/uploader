@@ -24,7 +24,6 @@ export function genBlockMeta(
                 total: total,
                 chunks: chunks,
                 chunkIndex: index,
-                transport: null,
                 manager: blockManager,
             });
             start += len;
@@ -37,7 +36,6 @@ export function genBlockMeta(
             total: total,
             chunks: 1,
             chunkIndex: 0,
-            transport: null,
             manager: blockManager,
         });
     }
@@ -105,6 +103,6 @@ export interface FileBlock {
     total: number;
     chunks: number;
     chunkIndex: number;
-    transport: Transport;
+    transport?: Transport;
     manager: FileBlockManager;
 }

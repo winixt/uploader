@@ -8,7 +8,7 @@ function genFileHash(file: FileBase): Promise<string> {
         const fileReader = new FileReader();
         let currentChunk = 0;
         fileReader.onload = function (e) {
-            spark.append(e.target.result as ArrayBuffer); // Append array buffer
+            spark.append(e.target?.result as ArrayBuffer); // Append array buffer
             currentChunk++;
 
             if (currentChunk < file.blocks.length) {

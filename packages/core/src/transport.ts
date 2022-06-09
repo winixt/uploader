@@ -20,7 +20,7 @@ export class Transport extends Mediator {
     }
     send() {
         const xhr = this.initAjax();
-        const server = this.options.api;
+        const server = this.options.api as string;
         xhr.withCredentials = !!this.options.withCredentials;
 
         xhr.open('POST', server, true);
@@ -75,7 +75,7 @@ export class Transport extends Mediator {
     private initAjax() {
         const xhr = new XMLHttpRequest();
 
-        xhr.timeout = this.options.timeout;
+        xhr.timeout = this.options.timeout || 0;
         xhr.upload.onprogress = (e) => {
             let percentage = 0;
 

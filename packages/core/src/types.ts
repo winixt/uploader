@@ -1,9 +1,9 @@
 export interface RequestOptions {
-    api: string;
+    api?: string;
     params?: Record<string, any>;
     headers?: Record<string, string>;
     withCredentials?: boolean;
-    timeout: number;
+    timeout?: number;
 }
 
 export interface UploaderOptions {

@@ -1,15 +1,19 @@
 <template>
-    <Uploader action="http://127.0.0.1:3000"></Uploader>
+    <Uploader action="http://127.0.0.1:3000">
+        <FButton>上传文件</FButton>
+    </Uploader>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import { FButton } from '@fesjs/fes-design';
 import Uploader from '../../../packages/fesd/src/uploader.vue';
 
 export default defineComponent({
     name: 'App',
     components: {
         Uploader,
+        FButton,
     },
 });
 </script>

@@ -1,6 +1,6 @@
 {
   "name": "@qlin/uploader",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "big file chunk uploader",
   "main": "./es/index.js",
   "module": "./es/index.js",
@@ -14,7 +14,11 @@
     "type": "git",
     "url": "git+https://github.com/winixt/uploader.git"
   },
-  "keywords": ["big file", "chunk", "upload"],
+  "keywords": [
+    "big file",
+    "chunk",
+    "upload"
+  ],
   "author": "winxit",
   "license": "ISC",
   "bugs": {

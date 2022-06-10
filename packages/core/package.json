@@ -2,11 +2,12 @@
   "name": "@qlin/uploader",
   "version": "0.1.0",
   "description": "big file chunk uploader",
-  "main": "index.js",
+  "main": "./es/index.js",
   "module": "./es/index.js",
   "scripts": {
     "build": "tsc"
   },
+  "files": ["es"],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/winixt/uploader.git"

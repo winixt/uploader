@@ -6,7 +6,43 @@
 
 ## 前端
 
-可以查看 demo
+### 安装
+
+```bash
+npm i @qlin/uploader
+```
+
+### 使用（可以查看 example）
+
+```js
+import { createUploader } from '@qlin/uploader';
+
+const uploader = createUploader({
+    chunked: props.chunked,
+    chunkSize: props.chunkSize,
+    retry: props.retry,
+    threads: props.threads,
+    request: {
+        api: props.action,
+        timeout: props.timeout,
+        params: props.data,
+        headers: props.headers,
+        withCredentials: props.withCredentials,
+    },
+});
+
+uploader.startUpload(file);
+
+uploader.onProgress((percentage: number) => {
+    console.log('progress', percentage);
+});
+uploader.onSuccess((res: any) => {
+    console.log('uploader success', res);
+});
+uploader.onError((error: string) => {
+    console.log('error', error);
+});
+```
 
 ## 对接后台
 

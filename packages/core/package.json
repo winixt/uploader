@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "description": "big file chunk uploader",
   "main": "index.js",
+  "module": "./es/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc"
   },
   "repository": {
     "type": "git",

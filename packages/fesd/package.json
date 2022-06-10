@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "files": ["./es"],
   "keywords": [],
   "author": "winixt",
   "license": "ISC",
@@ -18,5 +19,6 @@
   },
   "peerDependencies": {
     "@fesjs/fes-design": "^0.5.9"
-  }
+  },
+  "private": true
 }

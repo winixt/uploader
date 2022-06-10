@@ -12,9 +12,6 @@
         "experimentalDecorators": true,
         "composite": true,
         "target": "ES6",
-        "types": [
-            "jest"
-        ],
         "lib": [
             "ESNext",
             "DOM"

@@ -2719,7 +2719,7 @@ packages:
     dev: true
 
   /bytes/3.0.0:
-    resolution: {integrity: sha1-0ygVQE1olpn4Wk6k+odV3ROpYEg=, tarball: bytes/download/bytes-3.0.0.tgz}
+    resolution: {integrity: sha512-pMhOfFDPiv9t5jjIXkHosWmkSyQbvsgEVNkz0ERHbuLh2T/7j4Mqqpz523Fe8MVY89KC6Sh/QfS2sM+SjgFDcw==}
     engines: {node: '>= 0.8'}
     dev: true
 
@@ -3999,7 +3999,7 @@ packages:
       debug:
         optional: true
     dependencies:
-      debug: 4.3.4
+      debug: 4.3.4_supports-color@6.1.0
     dev: true
 
   /fork-ts-checker-webpack-plugin/6.5.2_typescript@4.5.5+webpack@5.73.0:
@@ -6881,7 +6881,7 @@ packages:
     engines: {node: '>= 10.0.0'}
 
   /unpipe/1.0.0:
-    resolution: {integrity: sha1-sr9O6FFKrmFltIF4KdIbLvSZBOw=, tarball: unpipe/download/unpipe-1.0.0.tgz}
+    resolution: {integrity: sha512-pjy2bYhSsufwWlKwPc+l3cN7+wuJlK6uz0YdJEOlQDbl6jo/YlPi4mb8agUkVC8BF7V8NuzeyPNqRksA3hztKQ==}
     engines: {node: '>= 0.8'}
     dev: true
 

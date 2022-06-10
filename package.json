@@ -7,7 +7,7 @@
     "start:client": "cd example/client && npm run dev",
     "start:node": "cd example/node && npm run dev",
     "build": "cd packages/core && npm run build",
-    "release": "npm run build && npm version patch && npm publish --registry=https://registry.npmjs.org"
+    "release": "cd packages/core && npm run build && npm version patch && npm publish --registry=https://registry.npmjs.org"
   },
   "repository": {
     "type": "git",

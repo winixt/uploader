@@ -1,23 +1,15 @@
 <template>
-    <Uploader
-        action="http://127.0.0.1:3000/upload"
-        :withCredentials="false"
-        :chunkSize="20 * 1024"
-    >
-        <FButton>上传文件</FButton>
-    </Uploader>
+    <FileUpload />
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { FButton } from '@fesjs/fes-design';
-import Uploader from '../../../packages/fesd/src/uploader.vue';
+import FileUpload from './fileUpload.vue';
 
 export default defineComponent({
     name: 'App',
     components: {
-        Uploader,
-        FButton,
+        FileUpload,
     },
 });
 </script>
@@ -27,8 +19,8 @@ export default defineComponent({
     font-family: Avenir, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    text-align: center;
+    width: 400px;
+    padding: 64px;
     color: #2c3e50;
-    margin-top: 60px;
 }
 </style>

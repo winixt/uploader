@@ -13,18 +13,23 @@
         :multipleLimit="multipleLimit"
         :showFileList="showFileList"
         :httpRequest="customerRequest"
-        @remove="removeFile"
+        @change="onChange"
+        @remove="onRemove"
+        @success="onSuccess"
+        @error="onError"
+        @exceed="onExceed"
+        @progress="onProgress"
     >
-        <template #default>
+        <template v-if="$slots.default" #default>
             <slot></slot>
         </template>
-        <template #tip>
+        <template v-if="$slots.tip" #tip>
             <slot name="tip"></slot>
         </template>
-        <template #file>
+        <template v-if="$slots.file" #file>
             <slot name="file"></slot>
         </template>
-        <template #fileList>
+        <template v-if="$slots.fileList" #fileList>
             <slot name="fileList"></slot>
         </template>
     </FUpload>
@@ -108,7 +113,8 @@ export default defineComponent({
             default: 120000,
         },
     },
-    setup(props) {
+    emits: ['change', 'remove', 'success', 'error', 'exceed', 'progress'],
+    setup(props, { emit }) {
         const uploader = createUploader({
             chunked: props.chunked,
             chunkSize: props.chunkSize,
@@ -152,6 +158,7 @@ export default defineComponent({
                 });
             });
             uploader.onSuccess((res: any) => {
+                console.log('uploader success', res);
                 onSuccess(res);
             });
             uploader.onError((error: string) => {
@@ -159,7 +166,7 @@ export default defineComponent({
             });
         };
 
-        const removeFile = ({ file }: { file: File }) => {
+        const removeFile = (file: File) => {
             uploader.removeFile(file);
         };
 
@@ -167,9 +174,34 @@ export default defineComponent({
             uploader.removeFile();
         });
 
+        const onChange = (params: { file: File }) => {
+            emit('change', params);
+        };
+        const onRemove = (params: { file: File }) => {
+            removeFile(params.file);
+            emit('remove', params);
+        };
+        const onSuccess = (params: { file: File }) => {
+            emit('success', params);
+        };
+        const onError = (params: { file: File }) => {
+            emit('error', params);
+        };
+        const onExceed = (params: { file: File }) => {
+            emit('exceed', params);
+        };
+        const onProgress = (params: { file: File }) => {
+            emit('progress', params);
+        };
+
         return {
             customerRequest,
-            removeFile,
+            onChange,
+            onRemove,
+            onSuccess,
+            onError,
+            onExceed,
+            onProgress,
         };
     },
 });

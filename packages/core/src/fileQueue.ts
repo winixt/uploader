@@ -127,6 +127,8 @@ export class FileQueue {
             chunkIndex: poolItem.block.chunkIndex,
             filename: file.name,
             hash: file.hash,
+            size: poolItem.block.size,
+            chunkSize: this.options.chunkSize,
         });
         transport.send();
         transport.on('progress', () => {

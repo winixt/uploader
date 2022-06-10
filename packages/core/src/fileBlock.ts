@@ -21,7 +21,7 @@ export function genBlockMeta(
                 file: file,
                 start: start,
                 end: chunkSize ? start + len : total,
-                total: total,
+                size: total,
                 totalChunk: totalChunk,
                 chunkIndex: index,
                 manager: blockManager,
@@ -33,7 +33,7 @@ export function genBlockMeta(
             file: file,
             start: 0,
             end: total,
-            total: total,
+            size: total,
             totalChunk: 1,
             chunkIndex: 0,
             manager: blockManager,
@@ -73,6 +73,9 @@ export class FileBlockManager {
         return this.blocks;
     }
     getProcessPercentage() {
+        if (this.isSuccess()) {
+            return 1;
+        }
         return this.blocks.reduce((acc, cur) => {
             return (acc +=
                 (cur.transport ? cur.transport.process : 0) / cur.totalChunk);
@@ -88,7 +91,7 @@ export class FileBlockManager {
         let successRes: Record<string, any> = {};
         this.blocks.forEach((item: FileBlock) => {
             const response = item.transport?.getResponse() as any;
-            if (typeof response !== 'string' && response.merge) {
+            if (response && typeof response !== 'string' && response.merge) {
                 successRes = response.merge;
             }
         });
@@ -100,7 +103,7 @@ export interface FileBlock {
     file: FileBase;
     start: number;
     end: number;
-    total: number;
+    size: number;
     totalChunk: number;
     chunkIndex: number;
     transport?: Transport;

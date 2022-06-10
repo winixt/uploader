@@ -13,3 +13,6 @@ yarn.lock
 tsconfig.tsbuildinfo
 
 example/node/tmp
+
+test.js
+test.ts

@@ -3,7 +3,7 @@ import { RequestOptions } from './types';
 import { Mediator } from './mediator';
 
 /**
- * 对外暴露的事件：progress succeess error
+ * 对外暴露的事件：progress success error
  */
 
 export class Transport extends Mediator {

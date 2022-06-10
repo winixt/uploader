@@ -1,5 +1,6 @@
 const path = require('path');
 const multiparty = require('multiparty');
+const fse = require('fs-extra');
 
 // 大文件存储目录
 // demo directory
@@ -81,7 +82,7 @@ class Controller {
 
             const msg = `${filename} chunk ${chunkIndex} upload successed`;
             // 切片数量等于分片数量，合并文件
-            if (fse.readdirSync(chunkDir).length === totalChunk) {
+            if (fse.readdirSync(chunkDir).length === Number(totalChunk)) {
                 res.end(
                     JSON.stringify({
                         code: 0,

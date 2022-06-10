@@ -1,5 +1,9 @@
 <template>
-    <Uploader action="http://127.0.0.1:3000/upload" :chunkSize="10 * 1024">
+    <Uploader
+        action="http://127.0.0.1:3000/upload"
+        :withCredentials="false"
+        :chunkSize="20 * 1024"
+    >
         <FButton>上传文件</FButton>
     </Uploader>
 </template>

@@ -57,7 +57,7 @@ export class FileQueue {
                 };
             }),
         );
-        nextTick(this.tick);
+        nextTick(this.tick.bind(this));
     }
     stopAllUpload() {
         this.activePool.forEach((item) => {
@@ -89,7 +89,7 @@ export class FileQueue {
         }
         this.pool = this.excludeFilePoolItem(this.pool, file);
         this.activePool = this.excludeFilePoolItem(this.activePool, file);
-        nextTick(this.tick);
+        nextTick(this.tick.bind(this));
     }
     tick() {
         if (this.pool.length && this.activePool.length < this.options.threads) {
@@ -98,7 +98,9 @@ export class FileQueue {
                 this.options.threads - this.activePool.length,
             );
 
-            newActivePool.forEach(this.sendBlock);
+            newActivePool.forEach((poolItem: PoolItem) => {
+                this.sendBlock(poolItem);
+            });
             this.activePool = this.activePool.concat(newActivePool);
         }
     }
@@ -121,7 +123,7 @@ export class FileQueue {
         poolItem.block.transport = transport;
         transport.appendParam({
             chunk: chunk,
-            totalChunk: poolItem.block.chunks,
+            totalChunk: poolItem.block.totalChunk,
             chunkIndex: poolItem.block.chunkIndex,
             filename: file.name,
             hash: file.hash,
@@ -131,7 +133,7 @@ export class FileQueue {
             const allPercentage = poolItem.block.manager.getProcessPercentage();
             this.emit.trigger('progress', allPercentage, file);
         });
-        transport.on('succeess', () => {
+        transport.on('success', () => {
             this.uploadBlockSuccess(poolItem);
         });
         transport.on('error', (errorMsg) => {
@@ -184,7 +186,17 @@ export class FileQueue {
             poolItem.block.file.setStatus(FILE_STATUS.COMPLETE);
             this.stopTargetFileUpload(poolItem.block.file);
         } else {
-            nextTick(this.tick);
+            this.removePoolItemInActivePool(poolItem);
+            nextTick(this.tick.bind(this));
+        }
+    }
+
+    private removePoolItemInActivePool(poolItem: PoolItem) {
+        const index = this.activePool.findIndex(
+            (item) => item.id === poolItem.id,
+        );
+        if (index !== -1) {
+            this.activePool.splice(index, 1);
         }
     }
 

@@ -3,6 +3,7 @@ import { FileBlock } from './fileBlock';
 import SparkMD5 from 'spark-md5';
 
 function genFileHash(file: FileBase): Promise<string> {
+    const blocks = file.blocks;
     return new Promise((resolve) => {
         const spark = new SparkMD5.ArrayBuffer();
         const fileReader = new FileReader();
@@ -11,7 +12,7 @@ function genFileHash(file: FileBase): Promise<string> {
             spark.append(e.target?.result as ArrayBuffer); // Append array buffer
             currentChunk++;
 
-            if (currentChunk < file.blocks.length) {
+            if (currentChunk < blocks.length) {
                 loadNext();
             } else {
                 resolve(spark.end());
@@ -23,7 +24,7 @@ function genFileHash(file: FileBase): Promise<string> {
         };
 
         function loadNext() {
-            const { start, end } = file.blocks[currentChunk];
+            const { start, end } = blocks[currentChunk];
 
             fileReader.readAsArrayBuffer(file.source.slice(start, end));
         }
@@ -41,8 +42,7 @@ export class FileBase {
     ext: string;
     statusText: string;
     source: File;
-    blocks: FileBlock[] = [];
-    remainingBlock = 0;
+    blocks: FileBlock[];
     status: FILE_STATUS;
     constructor(source: File) {
         this.name = source.name || 'Untitled';
@@ -74,5 +74,13 @@ export class FileBase {
     }
     getStatus() {
         return this.status;
+    }
+    getProgress() {
+        if (this.status === FILE_STATUS.COMPLETE) {
+            return 1;
+        }
+        return this.blocks.reduce((acc, cur) => {
+            return (acc += cur.progress / cur.totalChunk);
+        }, 0);
     }
 }

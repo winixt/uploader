@@ -11,6 +11,7 @@ interface PoolItem {
     id: number;
     retry: number;
     block: FileBlock;
+    transport?: Transport;
 }
 
 export class FileQueue {
@@ -33,13 +34,12 @@ export class FileQueue {
         });
     }
     async uploadFile(file: FileBase) {
+        // TODO 检测 文件已经上传成功
         if (file.getStatus() === FILE_STATUS.COMPLETE) return;
         file.setStatus(FILE_STATUS.PROGRESS);
-        let blockManager;
-        if (file.blocks.length) {
-            blockManager = file.blocks[0].manager;
-        } else {
-            blockManager = genBlockMeta(
+        let blocks = file.blocks;
+        if (!blocks) {
+            blocks = genBlockMeta(
                 file,
                 this.options.chunked,
                 this.options.chunkSize,
@@ -49,7 +49,7 @@ export class FileQueue {
             await file.genFileHash();
         }
         this.pool.push(
-            ...blockManager.getBlocks().map((block: FileBlock) => {
+            ...blocks.map((block: FileBlock) => {
                 return {
                     id: poolIndex++,
                     block,
@@ -62,7 +62,7 @@ export class FileQueue {
     stopAllUpload() {
         this.activePool.forEach((item) => {
             if (item.block) {
-                item.block.transport?.abort();
+                item.transport?.destroy();
             }
         });
         this.pool = [];
@@ -80,7 +80,7 @@ export class FileQueue {
     stopTargetFileUpload(file: FileBase) {
         this.activePool.forEach((item) => {
             if (item.block.file === file) {
-                item.block.transport?.abort();
+                item.transport?.destroy();
             }
         });
 
@@ -105,22 +105,11 @@ export class FileQueue {
         }
     }
     sendBlock(poolItem: PoolItem) {
-        if (poolItem.block.transport) {
-            if (poolItem.block.transport.isSuccess()) {
-                this.emit.trigger(
-                    'progress',
-                    poolItem.block.manager.getProcessPercentage(),
-                    poolItem.block.file,
-                );
-                this.uploadBlockSuccess(poolItem);
-                return;
-            }
-            poolItem.block.transport.destroy();
-        }
+        // TODO 检测 block 已经上传成功
         const transport = new Transport(this.options.request);
         const { file, start, end } = poolItem.block;
         const chunk = file.source.slice(start, end);
-        poolItem.block.transport = transport;
+        poolItem.transport = transport;
         transport.appendParam({
             chunk: chunk,
             totalChunk: poolItem.block.totalChunk,
@@ -131,12 +120,21 @@ export class FileQueue {
             chunkSize: this.options.chunkSize,
         });
         transport.send();
-        transport.on('progress', () => {
-            const allPercentage = poolItem.block.manager.getProcessPercentage();
+        transport.on('progress', (progress) => {
+            poolItem.block.progress = progress;
+            const allPercentage = poolItem.block.file.getProgress();
             this.emit.trigger('progress', allPercentage, file);
         });
-        transport.on('success', () => {
-            this.uploadBlockSuccess(poolItem);
+        transport.on('success', (response) => {
+            if (response.merge) {
+                // 上传成功
+                poolItem.block.file.setStatus(FILE_STATUS.COMPLETE);
+                this.emit.trigger('success', response.merge, file);
+                this.stopTargetFileUpload(poolItem.block.file);
+            } else {
+                this.removePoolItemInActivePool(poolItem);
+                nextTick(this.tick.bind(this));
+            }
         });
         transport.on('error', (errorMsg) => {
             // 移除该文件所有 block
@@ -176,21 +174,6 @@ export class FileQueue {
     removeAllFile() {
         this.stopAllUpload();
         this.fileQueue = [];
-    }
-
-    private uploadBlockSuccess(poolItem: PoolItem) {
-        if (poolItem.block.manager.isSuccess()) {
-            this.emit.trigger(
-                'success',
-                poolItem.block.manager.findUploadSuccessRes(),
-                poolItem.block.file,
-            );
-            poolItem.block.file.setStatus(FILE_STATUS.COMPLETE);
-            this.stopTargetFileUpload(poolItem.block.file);
-        } else {
-            this.removePoolItemInActivePool(poolItem);
-            nextTick(this.tick.bind(this));
-        }
     }
 
     private removePoolItemInActivePool(poolItem: PoolItem) {

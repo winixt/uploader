@@ -8,7 +8,6 @@ import { Mediator } from './mediator';
 
 export class Transport extends Mediator {
     status = 0;
-    process = 0;
     private response: any;
     private xhr: XMLHttpRequest | null;
     private options: RequestOptions;
@@ -67,9 +66,9 @@ export class Transport extends Mediator {
 
     destroy() {
         this.abort();
+        this.off();
     }
     private changeProcess(percentage: number) {
-        this.process = percentage;
         return this.trigger('progress', percentage);
     }
     private initAjax() {

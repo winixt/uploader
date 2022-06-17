@@ -3,6 +3,7 @@ import { Mediator } from './mediator';
 import { UploaderOptions } from './types';
 import { FileQueue } from './fileQueue';
 import { FileBase } from './fileBase';
+import { clearStore } from './fileStore';
 
 type FileType = File | FileBase;
 
@@ -74,6 +75,9 @@ export class Uploader {
                 fileBases.forEach(this.queue.removeFile);
             }
         }
+    }
+    destroy() {
+        clearStore();
     }
     onProgress(fn: (percentage: number, file: File) => void) {
         this.emit.on('progress', fn);

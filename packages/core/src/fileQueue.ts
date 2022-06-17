@@ -5,6 +5,13 @@ import { UploaderOptions } from './types';
 import { Mediator } from './mediator';
 import { FILE_STATUS } from './constants';
 import { nextTick } from './utils';
+import {
+    storeUploadFile,
+    getUploadedRes,
+    isUploaded,
+    storeUploadBlock,
+    isUploadedBlock,
+} from './fileStore';
 
 let poolIndex = 0;
 interface PoolItem {
@@ -34,9 +41,18 @@ export class FileQueue {
         });
     }
     async uploadFile(file: FileBase) {
-        // TODO 检测 文件已经上传成功
-        if (file.getStatus() === FILE_STATUS.COMPLETE) return;
+        if (!file.hash) {
+            await file.genFileHash();
+        }
+        if (isUploaded(file)) {
+            file.setStatus(FILE_STATUS.COMPLETE);
+            this.emit.trigger('progress', 1, file);
+            this.emit.trigger('success', getUploadedRes(file), file);
+            return;
+        }
+
         file.setStatus(FILE_STATUS.PROGRESS);
+
         let blocks = file.blocks;
         if (!blocks) {
             blocks = genBlockMeta(
@@ -44,9 +60,6 @@ export class FileQueue {
                 this.options.chunked,
                 this.options.chunkSize,
             );
-        }
-        if (!file.hash) {
-            await file.genFileHash();
         }
         this.pool.push(
             ...blocks.map((block: FileBlock) => {
@@ -105,7 +118,13 @@ export class FileQueue {
         }
     }
     sendBlock(poolItem: PoolItem) {
-        // TODO 检测 block 已经上传成功
+        if (isUploadedBlock(poolItem.block)) {
+            this.updateProgress(poolItem.block, 1);
+
+            this.removePoolItemInActivePool(poolItem);
+            nextTick(this.tick.bind(this));
+            return;
+        }
         const transport = new Transport(this.options.request);
         const { file, start, end } = poolItem.block;
         const chunk = file.source.slice(start, end);
@@ -121,17 +140,18 @@ export class FileQueue {
         });
         transport.send();
         transport.on('progress', (progress) => {
-            poolItem.block.progress = progress;
-            const allPercentage = poolItem.block.file.getProgress();
-            this.emit.trigger('progress', allPercentage, file);
+            this.updateProgress(poolItem.block, progress);
         });
         transport.on('success', (response) => {
+            storeUploadBlock(poolItem.block, response);
             if (response.merge) {
                 // 上传成功
                 poolItem.block.file.setStatus(FILE_STATUS.COMPLETE);
+                storeUploadFile(file, response.merge);
                 this.emit.trigger('success', response.merge, file);
                 this.stopTargetFileUpload(poolItem.block.file);
             } else {
+                poolItem.transport.destroy();
                 this.removePoolItemInActivePool(poolItem);
                 nextTick(this.tick.bind(this));
             }
@@ -147,6 +167,12 @@ export class FileQueue {
                 this.sendBlock(poolItem);
             }
         });
+    }
+
+    private updateProgress(block: FileBlock, percentage: number) {
+        block.progress = percentage;
+        const allPercentage = block.file.getProgress();
+        this.emit.trigger('progress', allPercentage, block.file);
     }
 
     findFile(file: File) {

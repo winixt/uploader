@@ -40,7 +40,6 @@ export class FileBase {
     lastModified: number;
     hash: string;
     ext: string;
-    statusText: string;
     source: File;
     blocks: FileBlock[];
     status: FILE_STATUS;
@@ -50,7 +49,6 @@ export class FileBase {
         this.type = source.type || 'application/octet-stream';
         this.lastModified = source.lastModified || Date.now();
         this.ext = this.getExt();
-        this.statusText = '';
         this.source = source;
 
         this.status = FILE_STATUS.QUEUED;
@@ -58,9 +56,6 @@ export class FileBase {
     getExt() {
         const result = /\.([^.]+)$/.exec(this.name);
         return result ? result[1] : '';
-    }
-    setStatusText(text: string) {
-        this.statusText = text;
     }
     async genFileHash() {
         this.hash = await genFileHash(this);

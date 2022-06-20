@@ -4,7 +4,7 @@ import { Transport } from './transport';
 import { UploaderOptions } from './types';
 import { Mediator } from './mediator';
 import { FILE_STATUS } from './constants';
-import { nextTick } from './utils';
+import { nextTick, compressBlock } from './utils';
 import {
     storeUploadFile,
     getUploadedRes,
@@ -41,6 +41,14 @@ export class FileQueue {
         });
     }
     async uploadFile(file: FileBase) {
+        let blocks = file.blocks;
+        if (!blocks) {
+            blocks = genBlockMeta(
+                file,
+                this.options.chunked,
+                this.options.chunkSize,
+            );
+        }
         if (!file.hash) {
             await file.genFileHash();
         }
@@ -53,14 +61,6 @@ export class FileQueue {
 
         file.setStatus(FILE_STATUS.PROGRESS);
 
-        let blocks = file.blocks;
-        if (!blocks) {
-            blocks = genBlockMeta(
-                file,
-                this.options.chunked,
-                this.options.chunkSize,
-            );
-        }
         this.pool.push(
             ...blocks.map((block: FileBlock) => {
                 return {
@@ -117,7 +117,7 @@ export class FileQueue {
             this.activePool = this.activePool.concat(newActivePool);
         }
     }
-    sendBlock(poolItem: PoolItem) {
+    async sendBlock(poolItem: PoolItem) {
         if (isUploadedBlock(poolItem.block)) {
             this.updateProgress(poolItem.block, 1);
 
@@ -127,10 +127,16 @@ export class FileQueue {
         }
         const transport = new Transport(this.options.request);
         const { file, start, end } = poolItem.block;
-        const chunk = file.source.slice(start, end);
+        let chunk;
+        if (!this.options.compressed) {
+            chunk = file.source.slice(start, end);
+        } else {
+            chunk = await compressBlock(file, poolItem.block);
+        }
         poolItem.transport = transport;
         transport.appendParam({
             chunk: chunk,
+            compressed: this.options.compressed,
             totalChunk: poolItem.block.totalChunk,
             chunkIndex: poolItem.block.chunkIndex,
             filename: file.name,
@@ -151,7 +157,7 @@ export class FileQueue {
                 this.emit.trigger('success', response.merge, file);
                 this.stopTargetFileUpload(poolItem.block.file);
             } else {
-                poolItem.transport.destroy();
+                poolItem.transport?.destroy();
                 this.removePoolItemInActivePool(poolItem);
                 nextTick(this.tick.bind(this));
             }

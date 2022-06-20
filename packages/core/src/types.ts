@@ -11,5 +11,6 @@ export interface UploaderOptions {
     chunkSize: number;
     retry: number;
     threads: number;
+    compressed: boolean;
     request: RequestOptions;
 }

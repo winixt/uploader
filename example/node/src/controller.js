@@ -1,6 +1,10 @@
 const path = require('path');
+const zlib = require('zlib');
 const multiparty = require('multiparty');
 const fse = require('fs-extra');
+const util = require('util');
+
+const inflate = util.promisify(zlib.inflate);
 
 // 大文件存储目录
 const UPLOAD_DIR = path.resolve(__dirname, '..', 'tmp');
@@ -100,13 +104,13 @@ class Controller {
             const [chunkIndex] = fields.chunkIndex;
             const [filename] = fields.filename;
             const [hash] = fields.hash;
+            const [compressed] = fields.compressed;
 
             const filePath = this.getFilePath(fields);
             const chunkDir = createChunkDir(hash);
             const chunkPath = path.resolve(chunkDir, `${chunkIndex}`);
 
             // 文件存在直接返回
-            // return if file is exists
             if (fse.existsSync(filePath)) {
                 res.end(
                     JSON.stringify({
@@ -121,7 +125,6 @@ class Controller {
             }
 
             // 切片存在直接返回
-            // return if chunk is exists
             if (fse.existsSync(chunkPath)) {
                 this.uploadChunkResult(
                     res,
@@ -132,15 +135,23 @@ class Controller {
             }
 
             // 切片目录不存在，创建切片目录
-            // if chunk directory is not exist, create it
             if (!fse.existsSync(chunkDir)) {
                 await fse.mkdirs(chunkDir);
             }
 
             // fs-extra 的 rename 方法 windows 平台会有权限问题
-            // use fs.move instead of fs.rename
             // https://github.com/meteor/meteor/issues/7852#issuecomment-255767835
-            await fse.move(chunk.path, path.resolve(chunkDir, `${chunkIndex}`));
+            console.log(chunk);
+            let chunkContent = fse.readFileSync(chunk.path);
+            fse.unlinkSync(chunk.path);
+            console.log('压缩', chunkContent instanceof Buffer, chunkContent.length);
+            if (compressed === 'true') {
+                chunkContent = await inflate(chunkContent);
+                console.log('解压缩', chunkContent instanceof Buffer, chunkContent.length);
+            }
+            fse.writeFileSync(chunkPath, chunkContent , {
+                encoding: 'binary'
+            });
 
             this.uploadChunkResult(
                 res,

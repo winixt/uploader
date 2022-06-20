@@ -44,14 +44,18 @@ importers:
   packages/core:
     specifiers:
       '@types/lodash-es': ^4.17.6
+      '@types/pako': ^2.0.0
       '@types/spark-md5': ^3.0.2
       lodash-es: ^4.17.21
+      pako: ^2.0.4
       spark-md5: ^3.0.2
       typescript: ^4.7.2
     dependencies:
       '@types/lodash-es': 4.17.6
+      '@types/pako': 2.0.0
       '@types/spark-md5': 3.0.2
       lodash-es: 4.17.21
+      pako: 2.0.4
       spark-md5: 3.0.2
     devDependencies:
       typescript: 4.7.2
@@ -1575,6 +1579,10 @@ packages:
 
   /@types/normalize-wheel/1.0.0:
     resolution: {integrity: sha512-SzWYVzP7Q8w4/976Gi3a6+J/8/VNTq6AW7wDafXorr1MYTxyZqJTbUvwQt1hiG3PXyFUMIKr+s6q3+MLz2c/TQ==}
+
+  /@types/pako/2.0.0:
+    resolution: {integrity: sha512-10+iaz93qR5WYxTo+PMifD5TSxiOtdRaxBf7INGGXMQgTCu8Z/7GYWYFUOS3q/G0nE5boj1r4FEB+WSy7s5gbA==}
+    dev: false
 
   /@types/parse-json/4.0.0:
     resolution: {integrity: sha512-//oorEZjL6sbPcKUaCdIGlIUeH26mgzimjBB77G6XRgnDl/L5wOnpyBGRe/Mmf5CVW3PwEBE1NjiMZ/ssFh4wA==}
@@ -5418,6 +5426,10 @@ packages:
     resolution: {integrity: sha512-R4nPAVTAU0B9D35/Gk3uJf/7XYbQcyohSKdvAxIRSNghFl4e71hVoGnBNQz9cWaXxO2I10KTC+3jMdvvoKw6dQ==}
     engines: {node: '>=6'}
     dev: true
+
+  /pako/2.0.4:
+    resolution: {integrity: sha512-v8tweI900AUkZN6heMU/4Uy4cXRc2AYNRggVmTR+dEncawDJgCdLMximOVA2p4qO57WMynangsfGRb5WD6L1Bg==}
+    dev: false
 
   /param-case/3.0.4:
     resolution: {integrity: sha512-RXlj7zCYokReqWpOPH9oYivUzLYZ5vAPIfEmCTNViosC78F8F0H9y7T7gG2M39ymgutxF5gcFEsyZQSph9Bp3A==}

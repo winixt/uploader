@@ -21,6 +21,7 @@ export function createUploader(options: Partial<UploaderOptions>) {
         chunkSize: 5242880, // 5M
         retry: 2,
         threads: 3,
+        compressed: true, // 对 block 进行 zlib 压缩
         ...otherOptions,
         request: requestOptions,
     });

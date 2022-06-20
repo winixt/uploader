@@ -5,7 +5,6 @@
         :chunkSize="20 * 1024"
         :multiple="multiple"
         :multipleLimit="multipleLimit"
-        :fileList="fileList"
         :accept="accept"
         :beforeUpload="beforeUpload"
         @remove="remove"
@@ -48,17 +47,17 @@ export default defineComponent({
     },
     emits: ['update:fileList'],
     setup(props) {
-        const fileList = ref([]);
-        const updateFileList = (fileList) => {
-            fileList.value = fileList;
+        let fileList:File[] = []
+        const updateFileList = (fileList: File[]) => {
+            fileList = fileList;
         };
-        const remove = ({ fileList }) => {
+        const remove = ({ fileList }: {fileList: File[]}) => {
             updateFileList(fileList);
         };
         const error = () => {
             FMessage.error('上传失败，请重试');
         };
-        const success = ({ file, fileList }) => {
+        const success = ({ file, fileList }: {file: File, fileList: File[]}) => {
             console.log('success', { file, fileList });
             updateFileList(fileList);
         };
@@ -82,7 +81,7 @@ export default defineComponent({
             }
             if (
                 props.multipleLimit &&
-                fileList.value.length > props.multipleLimit
+                fileList.length > props.multipleLimit
             ) {
                 FMessage.error(`文件数量不能超过${props.multipleLimit}个`);
                 return false;

@@ -164,6 +164,12 @@ export default defineComponent({
             uploader.onError((error: string) => {
                 onError(error);
             });
+
+            return {
+                abort: () => {
+                    uploader.stopUpload(file);
+                },
+            };
         };
 
         const removeFile = (file: File) => {

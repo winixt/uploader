@@ -1,24 +1,24 @@
 {
   "name": "@qlin/uploader-fesd",
   "version": "1.0.0",
+  "private": true,
   "description": "",
+  "author": "winixt",
+  "license": "ISC",
+  "keywords": [],
   "main": "index.js",
+  "files": ["./es"],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "files": ["./es"],
-  "keywords": [],
-  "author": "winixt",
-  "license": "ISC",
+  "peerDependencies": {
+    "@fesjs/fes-design": "^0.5.9"
+  },
   "dependencies": {
     "@qlin/uploader": "^0.1.0"
   },
   "devDependencies": {
     "@fesjs/fes-design": "^0.5.9",
     "vue": "^3.2.36"
-  },
-  "peerDependencies": {
-    "@fesjs/fes-design": "^0.5.9"
-  },
-  "private": true
+  }
 }

@@ -1,17 +1,17 @@
 <template>
-    <FileUpload />
+  <FileUpload />
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
-import FileUpload from './fileUpload.vue';
+import { defineComponent } from 'vue'
+import FileUpload from './fileUpload.vue'
 
 export default defineComponent({
-    name: 'App',
-    components: {
-        FileUpload,
-    },
-});
+  name: 'App',
+  components: {
+    FileUpload,
+  },
+})
 </script>
 
 <style>

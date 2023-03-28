@@ -1,0 +1,9 @@
+{
+  "extends": "@antfu",
+  "rules": {
+    "prefer-promise-reject-errors": "off",
+    "vue/component-tags-order": ["error", {
+      "order": ["template", "script", "style"]
+    }]
+  }
+}

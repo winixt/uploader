@@ -2,29 +2,29 @@
   "name": "@qlin/uploader",
   "version": "0.1.3",
   "description": "big file chunk uploader",
-  "main": "./es/index.js",
-  "module": "./es/index.js",
-  "scripts": {
-    "build": "tsc"
-  },
-  "files": [
-    "es"
-  ],
+  "author": "winxit",
+  "license": "ISC",
+  "homepage": "https://github.com/winixt/uploader#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/winixt/uploader.git"
+  },
+  "bugs": {
+    "url": "https://github.com/winixt/uploader/issues"
   },
   "keywords": [
     "big file",
     "chunk",
     "upload"
   ],
-  "author": "winxit",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/winixt/uploader/issues"
+  "main": "./es/index.js",
+  "module": "./es/index.js",
+  "files": [
+    "es"
+  ],
+  "scripts": {
+    "build": "tsc"
   },
-  "homepage": "https://github.com/winixt/uploader#readme",
   "dependencies": {
     "@types/lodash-es": "^4.17.6",
     "@types/pako": "^2.0.0",

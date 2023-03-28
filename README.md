@@ -15,33 +15,33 @@ npm i @qlin/uploader
 ### 使用（可以查看 example）
 
 ```js
-import { createUploader } from '@qlin/uploader';
+import { createUploader } from '@qlin/uploader'
 
 const uploader = createUploader({
-    chunked: props.chunked,
-    chunkSize: props.chunkSize,
-    retry: props.retry,
-    threads: props.threads,
-    request: {
-        api: props.action,
-        timeout: props.timeout,
-        params: props.data,
-        headers: props.headers,
-        withCredentials: props.withCredentials,
-    },
-});
+  chunked: props.chunked,
+  chunkSize: props.chunkSize,
+  retry: props.retry,
+  threads: props.threads,
+  request: {
+    api: props.action,
+    timeout: props.timeout,
+    params: props.data,
+    headers: props.headers,
+    withCredentials: props.withCredentials,
+  },
+})
 
-uploader.startUpload(file);
+uploader.startUpload(file)
 
 uploader.onProgress((percentage: number) => {
-    console.log('progress', percentage);
-});
+  console.log('progress', percentage)
+})
 uploader.onSuccess((res: any) => {
-    console.log('uploader success', res);
-});
+  console.log('uploader success', res)
+})
 uploader.onError((error: string) => {
-    console.log('error', error);
-});
+  console.log('error', error)
+})
 ```
 
 ## 对接后台
@@ -50,15 +50,16 @@ uploader.onError((error: string) => {
 
 ### 接受的参数(FormData)
 
-| 名称       | 说明       | 类型   |
-| ---------- | ---------- | ------ |
-| chunk      | 文件分片   | blob   |
-| totalChunk | 总分片数   | number |
-| chunkIndex | chunk 下标 | String |
-| filename   | 文件名称   | String |
-| hash       | 文件 hash  | String |
-| size       | 文件 size  | String |
-| chunkSize  | chunk 大小 | String |
+| 名称       | 说明                          | 类型   |
+| ---------- | ----------------------------- | ------ |
+| chunk      | 文件分片                      | blob   |
+| compressed | 分片开启 zlib 压缩，默认 true | blob   |
+| totalChunk | 总分片数                      | number |
+| chunkIndex | chunk 下标                    | String |
+| filename   | 文件名称                      | String |
+| hash       | 文件 hash                     | String |
+| size       | 文件 size                     | String |
+| chunkSize  | chunk 大小                    | String |
 
 ### 响应内容的要求
 
@@ -66,10 +67,10 @@ uploader.onError((error: string) => {
 
 ```json
 {
-    "code": 0,
-    "merge": {
-        "fileHash": "128ad650343805024e59c8b28c748d4c",
-        "fileId": "file_xxx"
-    }
+  "code": 0,
+  "merge": {
+    "fileHash": "128ad650343805024e59c8b28c748d4c",
+    "fileId": "file_xxx"
+  }
 }
 ```

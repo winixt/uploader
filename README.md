@@ -53,7 +53,7 @@ uploader.onError((error: string) => {
 | 名称       | 说明                          | 类型   |
 | ---------- | ----------------------------- | ------ |
 | chunk      | 文件分片                      | blob   |
-| compressed | 分片开启 zlib 压缩，默认 true | blob   |
+| compressed | 分片开启 zlib 压缩，默认 true | boolean   |
 | totalChunk | 总分片数                      | number |
 | chunkIndex | chunk 下标                    | String |
 | filename   | 文件名称                      | String |

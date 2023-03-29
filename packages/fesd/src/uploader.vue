@@ -184,8 +184,10 @@ export default defineComponent({
     const onChange = (params: { file: File }) => {
       emit('change', params)
     }
-    const onRemove = (params: { file: File }) => {
-      removeFile(params.file)
+    const onRemove = (params: { file: {
+      raw: File
+    } }) => {
+      removeFile(params.file.raw)
       emit('remove', params)
     }
     const onSuccess = (params: { file: File }) => {

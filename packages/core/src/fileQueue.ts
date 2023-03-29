@@ -114,10 +114,10 @@ export class FileQueue {
         this.options.threads - this.activePool.length,
       )
 
+      this.activePool = this.activePool.concat(newActivePool)
       newActivePool.forEach((poolItem: PoolItem) => {
         this.sendBlock(poolItem)
       })
-      this.activePool = this.activePool.concat(newActivePool)
     }
   }
 

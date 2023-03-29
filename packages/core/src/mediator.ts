@@ -28,8 +28,8 @@ export class Mediator {
     )
   }
 
-  private triggerHanders(events: EventHandler[], args: any[]) {
-    let stoped = false
+  private triggerHandlers(events: EventHandler[], args: any[]) {
+    let stopped = false
     let i = -1
     const len = events.length
 
@@ -37,12 +37,12 @@ export class Mediator {
       const handler = events[i]
 
       if (handler.cb(...args)) {
-        stoped = true
+        stopped = true
         break
       }
     }
 
-    return !stoped
+    return !stopped
   }
 
   private createEventHandler(name: string, callback: callbackType) {
@@ -90,6 +90,6 @@ export class Mediator {
 
     const events = this.findEvents(name)
 
-    return this.triggerHanders(events, args)
+    return this.triggerHandlers(events, args)
   }
 }

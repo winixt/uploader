@@ -1,6 +1,7 @@
 import SparkMD5 from 'spark-md5'
 import { FILE_STATUS } from './constants'
 import type { FileBlock } from './fileBlock'
+import { Mediator } from './mediator'
 
 function genFileHash(file: FileBase): Promise<string> {
   const blocks = file.blocks
@@ -33,7 +34,7 @@ function genFileHash(file: FileBase): Promise<string> {
   })
 }
 
-export class FileBase {
+export class FileBase extends Mediator {
   name: string
   size: number
   type: string
@@ -44,6 +45,7 @@ export class FileBase {
   blocks: FileBlock[]
   status: FILE_STATUS
   constructor(source: File) {
+    super()
     this.name = source.name || 'Untitled'
     this.size = source.size || 0
     this.type = source.type || 'application/octet-stream'

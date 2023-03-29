@@ -57,8 +57,8 @@ export class FileQueue {
 
     if (isUploaded(file)) {
       file.setStatus(FILE_STATUS.COMPLETE)
-      this.emit.trigger('progress', 1, file)
-      this.emit.trigger('success', getUploadedRes(file), file)
+      this.triggerProgress(1, file)
+      this.triggerSuccess(getUploadedRes(file), file)
       return
     }
 
@@ -159,7 +159,7 @@ export class FileQueue {
         // 上传成功
         poolItem.block.file.setStatus(FILE_STATUS.COMPLETE)
         storeUploadFile(file, response.merge)
-        this.emit.trigger('success', response.merge, file)
+        this.triggerSuccess(response.merge, file)
         this.stopTargetFileUpload(poolItem.block.file)
       }
       else {
@@ -172,7 +172,7 @@ export class FileQueue {
       // 移除该文件所有 block
       if (!poolItem.retry) {
         this.stopTargetFileUpload(poolItem.block.file)
-        this.emit.trigger('error', errorMsg, poolItem.block.file)
+        this.triggerError(errorMsg, poolItem.block.file)
         file.setStatus(FILE_STATUS.ERROR)
       }
       else {
@@ -185,7 +185,7 @@ export class FileQueue {
   private updateProgress(block: FileBlock, percentage: number) {
     block.progress = percentage
     const allPercentage = block.file.getProgress()
-    this.emit.trigger('progress', allPercentage, block.file)
+    this.triggerProgress(allPercentage, block.file)
   }
 
   findFile(file: File) {
@@ -214,6 +214,21 @@ export class FileQueue {
   removeAllFile() {
     this.stopAllUpload()
     this.fileQueue = []
+  }
+
+  private triggerProgress(percentage: number, file: FileBase) {
+    file.trigger('progress', percentage)
+    this.emit.trigger('progress', percentage, file)
+  }
+
+  private triggerSuccess(res: any, file: FileBase) {
+    file.trigger('success', res)
+    this.emit.trigger('success', res, file)
+  }
+
+  private triggerError(errorMsg: any, file: FileBase) {
+    file.trigger('error', errorMsg)
+    this.emit.trigger('error', errorMsg, file)
   }
 
   private removePoolItemInActivePool(poolItem: PoolItem) {

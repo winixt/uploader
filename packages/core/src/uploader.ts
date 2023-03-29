@@ -30,13 +30,14 @@ export class Uploader {
 
   // 执行上传，并将文件添加到队列
   startUpload(files?: FileType | FileType[]) {
-    if (!Array.isArray(files))
-      files = files ? [files] : []
+    let innerFiles = files
+    if (!Array.isArray(innerFiles))
+      innerFiles = innerFiles ? [innerFiles] : []
 
-    const fileBases = files.map(this.wrapFile)
+    const fileBases = innerFiles.map(this.wrapFile)
     this.queue.startUpload(fileBases)
 
-    return fileBases
+    return Array.isArray(files) ? fileBases : fileBases[0]
   }
 
   stopUpload(files?: FileType | FileType[]) {
@@ -57,7 +58,7 @@ export class Uploader {
         }
         else {
           const fileBases = this.queue.findFile(file)
-          fileBases.forEach(this.queue.stopTargetFileUpload)
+          fileBases.forEach(this.queue.stopTargetFileUpload.bind(this.queue))
         }
       })
     }
@@ -84,13 +85,14 @@ export class Uploader {
       }
       else {
         const fileBases = this.queue.findFile(file)
-        fileBases.forEach(this.queue.removeFile)
+        fileBases.forEach(this.queue.removeFile.bind(this.queue))
       }
     }
   }
 
   destroy() {
     clearStore()
+    this.emit.off()
   }
 
   onProgress(fn: (percentage: number, file: File) => void) {

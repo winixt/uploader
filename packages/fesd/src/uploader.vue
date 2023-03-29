@@ -152,17 +152,17 @@ export default defineComponent({
       onSuccess: (...args: any[]) => void
       onError: (...args: any[]) => void
     }) => {
-      uploader.startUpload(file)
-      uploader.onProgress((percentage: number) => {
+      const fileBase = uploader.startUpload(file)
+      fileBase.onProgress((percentage: number) => {
         onProgress({
           percent: percentage * 100,
         })
       })
-      uploader.onSuccess((res: any) => {
+      fileBase.onSuccess((res: any) => {
         console.log('uploader success', res)
         onSuccess(res)
       })
-      uploader.onError((error: string) => {
+      fileBase.onError((error: string) => {
         onError(error)
       })
 

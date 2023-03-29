@@ -1,6 +1,6 @@
 {
   "name": "@qlin/uploader",
-  "version": "0.1.3",
+  "version": "0.1.5",
   "description": "big file chunk uploader",
   "author": "winxit",
   "license": "ISC",

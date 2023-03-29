@@ -1,6 +1,8 @@
 import type { RequestOptions, UploaderOptions } from './types'
 import { Uploader } from './uploader'
 
+export { FileBase } from './fileBase'
+
 export function createUploader(options: Partial<UploaderOptions>) {
   const { request, ...otherOptions } = options
 

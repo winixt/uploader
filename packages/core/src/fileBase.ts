@@ -84,4 +84,16 @@ export class FileBase extends Mediator {
       return (acc += cur.progress / cur.totalChunk)
     }, 0)
   }
+
+  onProgress(fn: (percentage: number, file: File) => void) {
+    this.on('progress', fn)
+  }
+
+  onSuccess(fn: (response: any, file: File) => void) {
+    this.on('success', fn)
+  }
+
+  onError(fn: (msg: string, file: File) => void) {
+    this.on('error', fn)
+  }
 }

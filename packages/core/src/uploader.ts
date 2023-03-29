@@ -29,6 +29,8 @@ export class Uploader {
   }
 
   // 执行上传，并将文件添加到队列
+  startUpload(files?: FileType): FileBase
+  startUpload(files?: FileType[]): FileBase[]
   startUpload(files?: FileType | FileType[]) {
     let innerFiles = files
     if (!Array.isArray(innerFiles))

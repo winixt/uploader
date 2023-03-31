@@ -44,6 +44,7 @@ export class FileBase extends Mediator {
   source: File
   blocks: FileBlock[]
   status: FILE_STATUS
+  params: Record<string, any>
   constructor(source: File) {
     super()
     this.name = source.name || 'Untitled'
@@ -52,6 +53,7 @@ export class FileBase extends Mediator {
     this.lastModified = source.lastModified || Date.now()
     this.ext = this.getExt()
     this.source = source
+    this.params = {}
 
     this.status = FILE_STATUS.QUEUED
   }
@@ -71,6 +73,12 @@ export class FileBase extends Mediator {
     if (status !== prevStatus)
       this.status = status
   }
+
+  setParams(params: Record<string, any>) {
+    this.params = params
+  }
+
+  getParams() { return this.params }
 
   getStatus() {
     return this.status

@@ -121,6 +121,13 @@ export class FileQueue {
     }
   }
 
+  isUploadCompleted(response: Record<string, any>) {
+    if (this.options.isUploadCompleted)
+      return this.options.isUploadCompleted(response)
+
+    return response.merge
+  }
+
   async sendBlock(poolItem: PoolItem) {
     if (isUploadedBlock(poolItem.block)) {
       this.updateProgress(poolItem.block, 1)
@@ -156,11 +163,11 @@ export class FileQueue {
     })
     transport.on('success', (response) => {
       storeUploadBlock(poolItem.block, response)
-      if (response.merge) {
+      if (this.isUploadCompleted(response)) {
         // 上传成功
         poolItem.block.file.setStatus(FILE_STATUS.COMPLETE)
-        storeUploadFile(file, response.merge)
-        this.triggerSuccess(response.merge, file)
+        storeUploadFile(file, response.merge ? response.merge : response)
+        this.triggerSuccess(response.merge ? response.merge : response, file)
         this.stopTargetFileUpload(poolItem.block.file)
       }
       else {

@@ -13,4 +13,5 @@ export interface UploaderOptions {
   threads: number
   compressed: boolean
   request: RequestOptions
+  isUploadCompleted?: (response: Record<string, any>) => any
 }

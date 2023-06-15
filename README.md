@@ -74,3 +74,19 @@ uploader.onError((error: string) => {
   }
 }
 ```
+
+或者创建 uploader 的时候提供 `isUploadCompleted` 方法，返回非 `false` 代表上传成功。
+
+```js
+const uploader = createUploader({
+  // ... other options
+  isUploadCompleted: (response) => {
+    if (response.merge)
+      return response.merge
+
+    return false
+  }
+})
+```
+
+

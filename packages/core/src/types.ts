@@ -14,4 +14,5 @@ export interface UploaderOptions {
   compressed: boolean
   request: RequestOptions
   isUploadCompleted?: (response: Record<string, any>) => any
+  isUploadError?: (response: Record<string, any>) => any
 }

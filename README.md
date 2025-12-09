@@ -80,6 +80,10 @@ uploader.onError((error: string) => {
 ```js
 const uploader = createUploader({
   // ... other options
+  // 用于判断响应是否应该设置为失败, 不设置则仅根据 http 状态码判断
+  isUploadError(response) {
+    return response.code !== '0'
+  },
   isUploadCompleted: (response) => {
     if (response.merge)
       return response.merge

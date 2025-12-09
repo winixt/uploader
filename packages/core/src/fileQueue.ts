@@ -128,6 +128,22 @@ export class FileQueue {
     return response.merge
   }
 
+  handleUploadError(poolItem: PoolItem, errorMsg: any) {
+    const { file } = poolItem.block
+    // 移除该文件所有 block
+    if (!poolItem.retry) {
+      this.stopTargetFileUpload(poolItem.block.file)
+      this.triggerError(errorMsg, poolItem.block.file)
+      file.setStatus(FILE_STATUS.ERROR)
+    }
+    else {
+      poolItem.retry -= 1
+      this.sendBlock(poolItem)
+    }
+  }
+
+  
+
   async sendBlock(poolItem: PoolItem) {
     if (isUploadedBlock(poolItem.block)) {
       this.updateProgress(poolItem.block, 1)
@@ -163,6 +179,9 @@ export class FileQueue {
     })
     transport.on('success', (response) => {
       storeUploadBlock(poolItem.block, response)
+      if (this.options.isUploadError && this.options.isUploadError(response)) {
+        this.handleUploadError(poolItem, response)
+      } 
       if (this.isUploadCompleted(response)) {
         // 上传成功
         poolItem.block.file.setStatus(FILE_STATUS.COMPLETE)
@@ -177,16 +196,7 @@ export class FileQueue {
       }
     })
     transport.on('error', (errorMsg) => {
-      // 移除该文件所有 block
-      if (!poolItem.retry) {
-        this.stopTargetFileUpload(poolItem.block.file)
-        this.triggerError(errorMsg, poolItem.block.file)
-        file.setStatus(FILE_STATUS.ERROR)
-      }
-      else {
-        poolItem.retry -= 1
-        this.sendBlock(poolItem)
-      }
+      this.handleUploadError(poolItem, errorMsg)
     })
   }
 

@@ -178,10 +178,11 @@ export class FileQueue {
       this.updateProgress(poolItem.block, progress)
     })
     transport.on('success', (response) => {
-      storeUploadBlock(poolItem.block, response)
       if (this.options.isUploadError && this.options.isUploadError(response)) {
         this.handleUploadError(poolItem, response)
+        return;
       } 
+      storeUploadBlock(poolItem.block, response)
       if (this.isUploadCompleted(response)) {
         // 上传成功
         poolItem.block.file.setStatus(FILE_STATUS.COMPLETE)

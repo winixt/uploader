@@ -52,17 +52,18 @@ export class FileQueue {
         this.options.chunkSize,
       )
     }
+
+    file.setStatus(FILE_STATUS.PROGRESS)
+    
     if (!file.hash)
       await file.genFileHash()
-
+    
     if (isUploaded(file)) {
       file.setStatus(FILE_STATUS.COMPLETE)
       this.triggerProgress(1, file)
       this.triggerSuccess(getUploadedRes(file), file)
       return
     }
-
-    file.setStatus(FILE_STATUS.PROGRESS)
 
     this.pool.push(
       ...blocks.map((block: FileBlock) => {

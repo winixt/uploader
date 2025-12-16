@@ -1,5 +1,5 @@
 <template>
-  <FileUpload />
+  <FileUpload multiple />
 </template>
 
 <script lang="ts">

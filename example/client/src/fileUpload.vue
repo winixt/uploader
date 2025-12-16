@@ -2,7 +2,7 @@
   <Uploader
     action="http://127.0.0.1:3000/upload"
     :with-credentials="false"
-    :chunk-size="20 * 1024"
+    :chunk-size="50 * 1024"
     :multiple="multiple"
     :multiple-limit="multipleLimit"
     :accept="accept"
